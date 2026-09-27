@@ -1,9 +1,10 @@
-import * as vscode from 'vscode'
+import * as crypto from 'crypto'
+import * as fs from 'fs'
 import * as os from 'os'
 import * as path from 'path'
-import * as fs from 'fs'
-import * as crypto from 'crypto'
+import * as vscode from 'vscode'
 import { PreviewGeneratedCodeMessage } from '../../types/messages'
+import { get_error_message } from '@/utils/get-error-message'
 
 export const handle_preview_generated_code = async (
   message: PreviewGeneratedCodeMessage
@@ -37,7 +38,7 @@ export const handle_preview_generated_code = async (
     )
   } catch (error) {
     vscode.window.showErrorMessage(
-      `Failed to open view: ${error instanceof Error ? error.message : String(error)}`
+      `Failed to open view: ${get_error_message(error)}`
     )
   }
 }

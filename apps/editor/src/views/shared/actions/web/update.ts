@@ -1,5 +1,5 @@
 import * as vscode from 'vscode'
-import { WebConfiguration } from '@shared/types/web-configuration'
+import { WebConfiguration } from '@/types/web-configuration'
 import {
   ConfigWebConfigurationFormat,
   ui_web_configuration_to_config_format
@@ -35,7 +35,7 @@ export const update = async (params: {
       vscode.window.showErrorMessage(
         t('common.error.could-not-update-item-not-found', {
           item_type: 'chatbot',
-          name: params.updating_web_configuration.name!
+          name: params.updating_web_configuration.name
         })
       )
       return { success: false, has_changes: false }

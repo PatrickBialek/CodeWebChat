@@ -12,7 +12,7 @@ import { DropdownMenu } from '../../DropdownMenu'
 import { use_is_mac } from '@shared/hooks'
 import { Tooltip } from '../../Tooltip'
 import { KeycapWrapper } from '../../../prompt/KeycapWrapper'
-import { TARGET, Target } from '@shared/types/mode'
+import { Target } from '@shared/types/target'
 import { display_token_count } from '@shared/utils/display-token-count'
 import {
   get_caret_position_from_div,
@@ -60,9 +60,8 @@ export type PromptFieldProps = {
   currently_open_file_text?: string
   on_go_to_file: (file_path: string) => void
   on_pasted_lines_click: (path: string, start?: string, end?: string) => void
-  on_open_url: (url: string) => void
-  on_paste_image: (base64_content: string) => void
   on_open_website: (url: string) => void
+  on_paste_image: (base64_content: string) => void
   on_open_image: (hash: string) => void
   on_paste_long_text: (text: string) => void
   on_open_pasted_text: (hash: string) => void
@@ -91,6 +90,7 @@ export type PromptFieldProps = {
   target: Target
   on_target_change: (target: Target) => void
   active_border_color?: 'blue' | 'purple' | 'yellow'
+  are_keyboard_shortcuts_disabled?: boolean
   translations: {
     voice_input: string
     stop_recording: string
@@ -112,9 +112,9 @@ export type PromptFieldProps = {
     preview_prompt: string
     send: string
     attach_selected_files: string
-    target: string
     more: string
   }
+  
 }
 
 export const PromptField: React.FC<PromptFieldProps> = (props) => {
@@ -128,8 +128,7 @@ export const PromptField: React.FC<PromptFieldProps> = (props) => {
   const [is_recording_hovered, set_is_recording_hovered] = useState(false)
   const [is_edit_format_hovered, set_is_edit_format_hovered] = useState(false)
   const [is_more_hovered, set_is_more_hovered] = useState(false)
-  const [is_target_switch_hovered, set_is_target_switch_hovered] =
-    useState(false)
+  const [is_target_dropdown_open, set_is_target_dropdown_open] = useState(false)
   const [hovered_left_action, set_hovered_left_action] = useState<
     'at' | 'hash' | 'slash' | null
   >(null)
@@ -327,9 +326,22 @@ export const PromptField: React.FC<PromptFieldProps> = (props) => {
     }
   }, [props.is_recording])
 
+  useEffect(() => {
+    if (is_target_dropdown_open) {
+      const handle_click = () => {
+        set_is_target_dropdown_open(false)
+      }
+
+      document.addEventListener('click', handle_click)
+      return () => {
+        document.removeEventListener('click', handle_click)
+      }
+    }
+  }, [is_target_dropdown_open])
+
   const render_footer = () => {
     const primary_dropdown_items =
-      props.target == TARGET.API && !props.value
+      (props.target == 'API' || props.target == 'CLI') && !props.value
         ? []
         : [
             ...(!props.value
@@ -353,7 +365,7 @@ export const PromptField: React.FC<PromptFieldProps> = (props) => {
               on_click: handle_select_click,
               is_disabled: props.is_action_disabled
             },
-            ...(props.target == TARGET.WEB
+            ...(props.target == 'WEB'
               ? [
                   {
                     label: props.translations.copy_prompt,
@@ -380,12 +392,13 @@ export const PromptField: React.FC<PromptFieldProps> = (props) => {
               on_click: () => {
                 props.on_preview_prompt?.()
                 close_dropdown()
-              }
+              },
+              is_disabled: props.is_action_disabled
             }
           ].filter((item) => !(!has_content && item.is_disabled))
 
     const disconnected_dropdown_items =
-      props.target == TARGET.API && !props.value
+      (props.target == 'API' || props.target == 'CLI') && !props.value
         ? []
         : [
             ...(!props.value
@@ -415,7 +428,8 @@ export const PromptField: React.FC<PromptFieldProps> = (props) => {
               on_click: () => {
                 props.on_preview_prompt?.()
                 close_dropdown()
-              }
+              },
+              is_disabled: props.is_action_disabled
             }
           ].filter((item) => !(!has_content && item.is_disabled))
 
@@ -459,10 +473,14 @@ export const PromptField: React.FC<PromptFieldProps> = (props) => {
             offset={48}
           />
         )}
-        {props.last_choice_tooltip && show_submit_tooltip && (
+        {show_submit_tooltip && (
           <Tooltip
-            message={`${props.translations.send_with} ${props.last_choice_tooltip.name}`}
-            details={props.last_choice_tooltip.details}
+            message={
+              props.last_choice_tooltip
+                ? `${props.translations.send_with} ${props.last_choice_tooltip.name}`
+                : props.translations.send_with_ellipsis
+            }
+            details={props.last_choice_tooltip?.details}
             offset={28}
             align="right"
           />
@@ -664,32 +682,68 @@ export const PromptField: React.FC<PromptFieldProps> = (props) => {
 
           <div className={styles['footer__right__submit']} ref={dropdown_ref}>
             {props.target && props.on_target_change && (
-              <div className={styles['footer__right__target-switch']}>
-                {is_target_switch_hovered && (
-                  <Tooltip message={props.translations.target} align="center" />
-                )}
-                <KeycapWrapper char={is_alt_pressed ? 'Esc' : undefined}>
-                  <button
-                    className={cn(
-                      styles['footer__right__submit__button'],
-                      styles['footer__right__target-switch__button']
-                    )}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      props.on_target_change!(
-                        props.target == TARGET.WEB ? TARGET.API : TARGET.WEB
-                      )
-                    }}
-                    onMouseEnter={() => set_is_target_switch_hovered(true)}
-                    onMouseLeave={() => set_is_target_switch_hovered(false)}
+              <div
+                className={styles['footer__right__target-switch']}
+              >
+                {(is_target_dropdown_open || is_alt_pressed) && (
+                  <div
+                    className={
+                      styles['footer__right__target-switch__dropdown-wrapper']
+                    }
                   >
-                    <span
-                      className={styles['footer__right__target-switch__label']}
+                    <div
+                      className={styles['footer__right__target-switch__dropdown']}
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      {props.target == TARGET.WEB ? 'WEB' : 'API'}
-                    </span>
-                  </button>
-                </KeycapWrapper>
+                      {(['WEB', 'API', 'CLI'] as Target[]).map((t, idx) => (
+                        <button
+                          key={t}
+                          className={
+                            styles['footer__right__target-switch__dropdown-item']
+                          }
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            props.on_target_change!(t)
+                            set_is_target_dropdown_open(false)
+                          }}
+                          disabled={t == props.target}
+                        >
+                          {is_alt_pressed && t != props.target ? (
+                            <KeycapWrapper char={(idx + 1).toString()}>
+                              <span >{t}</span>
+                            </KeycapWrapper>
+                          ) : (
+                            t
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <button
+                  className={cn(
+                    styles['footer__right__submit__button'],
+                    styles['footer__right__target-switch__button'],
+                    {
+                      [styles['footer__right__submit__button--hovered']]:
+                        is_target_dropdown_open || is_alt_pressed
+                    }
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    set_is_target_dropdown_open(!is_target_dropdown_open)
+                  }}
+                >
+                  <span
+                    className={styles['footer__right__target-switch__label']}
+                  >
+                    {props.target == 'WEB'
+                      ? 'WEB'
+                      : props.target == 'API'
+                        ? 'API'
+                        : 'CLI'}
+                  </span>
+                </button>
               </div>
             )}
             {!props.is_copy_only &&
@@ -729,7 +783,7 @@ export const PromptField: React.FC<PromptFieldProps> = (props) => {
                       onMouseEnter={() => set_is_recording_hovered(true)}
                       onMouseLeave={() => set_is_recording_hovered(false)}
                     />
-                  ) : (
+                  )                  : (
                     <button
                       className={cn(
                         styles['footer__right__submit__button'],
@@ -737,7 +791,9 @@ export const PromptField: React.FC<PromptFieldProps> = (props) => {
                         'codicon',
                         'codicon-send'
                       )}
-                      onClick={handle_submit}
+                      onClick={(e) => {
+                        handle_submit(e as any)
+                      }}
                       onMouseEnter={() => set_show_submit_tooltip(true)}
                       onMouseLeave={() => set_show_submit_tooltip(false)}
                       disabled={props.is_action_disabled}
@@ -748,9 +804,9 @@ export const PromptField: React.FC<PromptFieldProps> = (props) => {
                       <button
                         ref={chevron_button_ref}
                         className={styles['footer__right__submit__button']}
-                        onClick={() => {
-                          toggle_dropdown()
-                        }}
+                      onClick={() => {
+                        toggle_dropdown()
+                      }}
                         onMouseEnter={() => set_is_more_hovered(true)}
                         onMouseLeave={() => set_is_more_hovered(false)}
                       >

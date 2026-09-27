@@ -1,13 +1,19 @@
 import { useEffect, useState } from 'react'
 import { MainView } from './MainView'
-import { WebConfiguration } from '@shared/types/web-configuration'
+import { WebConfiguration } from '@/types/web-configuration'
 import { EditFormat } from '@shared/types/edit-format'
-import { TARGET, Target } from '@shared/types/mode'
-import { ApiPromptType, WebPromptType } from '@shared/types/prompt-types'
+import { CliConfiguration } from '@/types/cli-configuration'
+import { Target } from '@shared/types/target'
+import {
+  ApiPromptType,
+  WebPromptType,
+  CliPromptType
+} from '@shared/types/prompt-types'
 import {
   BackendMessage,
   WebConfigurationsMessage,
   FrontendMessage,
+  AgentConfigurationsMessage,
   SelectionState,
   SetupProgress
 } from '@/views/prompt/types/messages'
@@ -28,6 +34,7 @@ type Props = {
   vscode: any
   on_web_configuration_edit: (web_configuration: WebConfiguration) => void
   on_api_configuration_edit: (api_configuration: ApiConfiguration) => void
+  on_cli_configuration_edit?: (cli_configuration: CliConfiguration) => void
   on_show_home: () => void
   is_connected: boolean
   ask_instructions: string
@@ -39,9 +46,11 @@ type Props = {
   target: Target
   web_prompt_type: WebPromptType
   api_prompt_type: ApiPromptType
+  cli_prompt_type: CliPromptType
   on_target_change: (target: Target) => void
   on_web_prompt_type_change: (prompt_type: WebPromptType) => void
   on_api_prompt_type_change: (prompt_type: ApiPromptType) => void
+  on_cli_prompt_type_change: (prompt_type: CliPromptType) => void
   currently_open_file_path?: string
   current_selection?: SelectionState | null
   chat_input_focus_and_select_key: number
@@ -51,7 +60,6 @@ type Props = {
   currently_open_file_text?: string
   on_pasted_lines_click: (path: string, start?: string, end?: string) => void
   are_keyboard_shortcuts_disabled: boolean
-  on_open_url: (url: string) => void
   on_open_website: (url: string) => void
   on_paste_image: (base64_content: string) => void
   on_open_image: (hash: string) => void
@@ -97,6 +105,12 @@ export const Main: React.FC<Props> = (props) => {
     selected_api_configuration_id_by_prompt_type,
     set_selected_api_configuration_id_by_prompt_type
   ] = useState<{ [T in ApiPromptType]?: string }>()
+  const [cli_configurations, set_cli_configurations] =
+    useState<CliConfiguration[]>()
+  const [
+    selected_cli_configuration_name_by_mode,
+    set_selected_cli_configuration_name_by_mode
+  ] = useState<{ [T in CliPromptType]?: string }>()
   const [ask_about_files_history, set_ask_about_files_history] =
     useState<string[]>()
   const [edit_files_history, set_edit_files_history] = useState<string[]>()
@@ -120,6 +134,15 @@ export const Main: React.FC<Props> = (props) => {
           set_selected_api_configuration_id_by_prompt_type(
             (message as WebConfigurationsMessage)
               .selected_api_configuration_id_by_prompt_type
+          )
+          break
+        case 'CLI_CONFIGURATIONS':
+          set_cli_configurations(
+            (message as AgentConfigurationsMessage).cli_configurations
+          )
+          set_selected_cli_configuration_name_by_mode(
+            (message as AgentConfigurationsMessage)
+              .selected_cli_configuration_name_by_mode
           )
           break
         case 'CHAT_HISTORY':
@@ -148,6 +171,12 @@ export const Main: React.FC<Props> = (props) => {
             [message.prompt_type]: message.id
           }))
           break
+        case 'SELECTED_CLI_CONFIGURATION_CHANGED':
+          set_selected_cli_configuration_name_by_mode((prev) => ({
+            ...prev,
+            [(message as any).prompt_type]: (message as any).name
+          }))
+          break
       }
     }
 
@@ -155,6 +184,7 @@ export const Main: React.FC<Props> = (props) => {
 
     const initial_messages: FrontendMessage[] = [
       { command: 'GET_WEB_CONFIGURATIONS' },
+      { command: 'GET_CLI_CONFIGURATIONS' },
       { command: 'GET_HISTORY' },
       { command: 'GET_INSTRUCTIONS' },
       { command: 'GET_EDIT_FORMAT' }
@@ -165,7 +195,11 @@ export const Main: React.FC<Props> = (props) => {
   }, [])
 
   const current_prompt_type =
-    props.target == TARGET.WEB ? props.web_prompt_type : props.api_prompt_type
+    props.target == 'WEB'
+      ? props.web_prompt_type
+      : props.target == 'API'
+        ? props.api_prompt_type
+        : props.cli_prompt_type
 
   const update_chat_history = (instruction: string) => {
     const trimmed_instruction = instruction.trim()
@@ -360,6 +394,71 @@ export const Main: React.FC<Props> = (props) => {
     })
   }
 
+  const handle_create_cli_configuration = (params?: {
+    insertion_index?: number
+    exact_insertion?: boolean
+  }) => {
+    post_message(props.vscode, {
+      command: 'CREATE_CLI_CONFIGURATION',
+      reference_index: params?.insertion_index,
+      exact_insertion: params?.exact_insertion
+    })
+  }
+
+  const handle_cli_configurations_reorder = (
+    reordered_cli_configurations: CliConfiguration[]
+  ) => {
+    if (cli_configurations) {
+      set_cli_configurations(reordered_cli_configurations)
+    }
+
+    post_message(props.vscode, {
+      command: 'REORDER_CLI_CONFIGURATIONS',
+      cli_configurations: reordered_cli_configurations
+    })
+  }
+
+  const handle_edit_cli_configuration = (name: string) => {
+    const config = cli_configurations?.find((c) => c.name == name)
+    if (config && props.on_cli_configuration_edit) {
+      props.on_cli_configuration_edit(config)
+    }
+  }
+
+  const handle_delete_cli_configuration = (name: string) => {
+    post_message(props.vscode, {
+      command: 'DELETE_CLI_CONFIGURATION',
+      name
+    })
+  }
+
+  const handle_toggle_pinned_cli_configuration = (name: string) => {
+    if (cli_configurations) {
+      const updated_cli_configurations = cli_configurations.map((p) =>
+        p.name == name ? { ...p, is_pinned: !p.is_pinned } : p
+      )
+
+      set_cli_configurations(updated_cli_configurations)
+
+      post_message(props.vscode, {
+        command: 'TOGGLE_PINNED_CLI_CONFIGURATION',
+        cli_configuration_name: name
+      })
+    }
+  }
+
+  const handle_cli_configuration_click = (name: string) => {
+    const instruction = get_current_instructions()
+    post_message(props.vscode, {
+      command: 'INVOKE_AGENTIC_CLI',
+      use_quick_pick: false,
+      cli_configuration_name: name
+    })
+    if (instruction.trim()) {
+      update_chat_history(instruction)
+    }
+  }
+
   const handle_edit_format_change = (format?: EditFormat) => {
     if (format) {
       post_message(props.vscode, {
@@ -391,6 +490,19 @@ export const Main: React.FC<Props> = (props) => {
 
     post_message(props.vscode, {
       command: 'MAKE_API_CALL',
+      use_quick_pick
+    })
+
+    if (instructions.trim()) {
+      update_chat_history(instructions)
+    }
+  }
+
+  const handle_invoke_agentic_cli = (use_quick_pick?: boolean) => {
+    const instructions = get_current_instructions()
+
+    post_message(props.vscode, {
+      command: 'INVOKE_AGENTIC_CLI',
       use_quick_pick
     })
 
@@ -467,9 +579,13 @@ export const Main: React.FC<Props> = (props) => {
     current_history = edit_files_history
   }
 
+  const selected_cli_configuration_name =
+    selected_cli_configuration_name_by_mode?.[props.cli_prompt_type]
+
   if (
     web_configurations === undefined ||
     props.api_configurations === undefined ||
+    cli_configurations === undefined ||
     ask_about_files_history === undefined ||
     edit_files_history === undefined ||
     instructions === undefined ||
@@ -504,6 +620,15 @@ export const Main: React.FC<Props> = (props) => {
       is_connected={props.is_connected}
       web_configurations={web_configurations || []}
       on_create_web_configuration={handle_create_web_configuration}
+      cli_configurations={cli_configurations || []}
+      on_create_cli_configuration={handle_create_cli_configuration}
+      on_cli_configuration_click={handle_cli_configuration_click}
+      on_cli_configurations_reorder={handle_cli_configurations_reorder}
+      on_toggle_pinned_cli_configuration={
+        handle_toggle_pinned_cli_configuration
+      }
+      on_edit_cli_configuration={handle_edit_cli_configuration}
+      on_delete_cli_configuration={handle_delete_cli_configuration}
       currently_open_file_path={props.currently_open_file_path}
       on_quick_action_click={handle_quick_action_click}
       current_selection={props.current_selection}
@@ -513,8 +638,10 @@ export const Main: React.FC<Props> = (props) => {
       ask_instructions_token_count={props.ask_instructions_token_count}
       web_prompt_type={props.web_prompt_type}
       api_prompt_type={props.api_prompt_type}
+      cli_prompt_type={props.cli_prompt_type}
       on_web_prompt_type_change={props.on_web_prompt_type_change}
       on_api_prompt_type_change={props.on_api_prompt_type_change}
+      on_cli_prompt_type_change={props.on_cli_prompt_type_change}
       edit_format={edit_format}
       on_edit_format_change={handle_edit_format_change}
       on_web_configurations_reorder={handle_web_configurations_reorder}
@@ -527,12 +654,14 @@ export const Main: React.FC<Props> = (props) => {
       selected_api_configuration_id={
         selected_api_configuration_id_by_prompt_type?.[props.api_prompt_type]
       }
+      selected_cli_configuration_name={selected_cli_configuration_name}
       instructions={instructions}
       set_instructions={set_instructions}
       on_caret_position_change={handle_caret_position_change}
       target={props.target}
       on_target_change={props.on_target_change}
       on_make_api_call={handle_make_api_call}
+      on_invoke_agentic_cli={handle_invoke_agentic_cli}
       caret_position_to_set={caret_position_to_set}
       on_caret_position_set={() => set_caret_position_to_set(undefined)}
       chat_input_focus_and_select_key={props.chat_input_focus_and_select_key}
@@ -548,7 +677,6 @@ export const Main: React.FC<Props> = (props) => {
       on_pasted_lines_click={props.on_pasted_lines_click}
       currently_open_file_text={props.currently_open_file_text}
       are_keyboard_shortcuts_disabled={props.are_keyboard_shortcuts_disabled}
-      on_open_url={props.on_open_url}
       on_open_website={props.on_open_website}
       on_paste_image={props.on_paste_image}
       on_open_image={props.on_open_image}

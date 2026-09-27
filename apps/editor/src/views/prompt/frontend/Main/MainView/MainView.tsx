@@ -4,13 +4,18 @@ import { Configurations as UiConfigurations } from '@ui/components/editor/prompt
 import { PromptField as UiPromptField } from '@ui/components/editor/common/prompts/PromptField'
 import { PromptAttachments } from './components/PromptAttachments'
 import { Spacer as UiSpacer } from '@ui/components/editor/prompt/Spacer'
-import { WebConfiguration } from '@shared/types/web-configuration'
+import { WebConfiguration } from '@/types/web-configuration'
+import { CliConfiguration } from '@/types/cli-configuration'
 import { Responses as UiResponses } from '@ui/components/editor/prompt/Responses'
 import { StatusBar as UiStatusBar } from '@ui/components/editor/prompt/StatusBar'
 import { ResponseHistoryItem } from '@shared/types/response-history-item'
 import { EditFormat } from '@shared/types/edit-format'
-import { TARGET, Target } from '@shared/types/mode'
-import { ApiPromptType, WebPromptType } from '@shared/types/prompt-types'
+import { Target } from '@shared/types/target'
+import {
+  ApiPromptType,
+  WebPromptType,
+  CliPromptType
+} from '@shared/types/prompt-types'
 import { Scrollable as UiScrollable } from '@ui/components/editor/common/Scrollable'
 import { BrowserConnectionStatus } from './components/BrowserConnectionStatus'
 import { ApiConfiguration, SetupProgress } from '@/views/prompt/types/messages'
@@ -54,6 +59,18 @@ type Props = {
     insertion_index?: number
     exact_insertion?: boolean
   }) => void
+  cli_configurations: CliConfiguration[]
+  on_cli_configuration_click: (name: string) => void
+  on_cli_configurations_reorder: (
+    reordered_configurations: CliConfiguration[]
+  ) => void
+  on_toggle_pinned_cli_configuration: (name: string) => void
+  on_edit_cli_configuration: (name: string) => void
+  on_delete_cli_configuration: (name: string) => void
+  on_create_cli_configuration: (params?: {
+    insertion_index?: number
+    exact_insertion?: boolean
+  }) => void
   on_manage_models: () => void
   on_manage_providers: () => void
   currently_open_file_path?: string
@@ -64,8 +81,10 @@ type Props = {
   ask_instructions_token_count: number
   web_prompt_type: WebPromptType
   api_prompt_type: ApiPromptType
+  cli_prompt_type: CliPromptType
   on_web_prompt_type_change: (prompt_type: WebPromptType) => void
   on_api_prompt_type_change: (prompt_type: ApiPromptType) => void
+  on_cli_prompt_type_change: (prompt_type: CliPromptType) => void
   edit_format: EditFormat
   on_edit_format_change: (format?: EditFormat) => void
   on_web_configurations_reorder: (
@@ -76,12 +95,14 @@ type Props = {
   on_toggle_web_configuration_pinned: (name: string) => void
   selected_web_configuration_name?: string
   selected_api_configuration_id?: string
+  selected_cli_configuration_name?: string
   instructions: string
   set_instructions: (value: string) => void
   on_caret_position_change: (caret_position: number) => void
   target: Target
   on_target_change: (value: Target) => void
   on_make_api_call: (use_quick_pick: boolean) => void
+  on_invoke_agentic_cli: (use_quick_pick: boolean) => void
   caret_position_to_set?: number
   on_caret_position_set?: () => void
   chat_input_focus_and_select_key: number
@@ -96,7 +117,6 @@ type Props = {
   currently_open_file_text?: string
   on_go_to_file: (file_path: string) => void
   on_pasted_lines_click: (path: string, start?: string, end?: string) => void
-  on_open_url: (url: string) => void
   on_open_website: (url: string) => void
   are_keyboard_shortcuts_disabled: boolean
   on_paste_image: (base64_content: string) => void
@@ -158,31 +178,38 @@ export const MainView: React.FC<Props> = (props) => {
   const [is_content_scrollable, set_is_content_scrollable] = useState(false)
 
   const show_edit_format_selector =
-    (props.target == TARGET.WEB && props.web_prompt_type == 'edit-files') ||
-    (props.target == TARGET.API && props.api_prompt_type == 'edit-files')
+    (props.target == 'WEB' && props.web_prompt_type == 'edit-files') ||
+    (props.target == 'API' && props.api_prompt_type == 'edit-files')
 
-  const is_context_empty =
-    show_edit_format_selector && props.selected_files.length == 0
+  const is_required_context_empty =
+    ((props.target == 'WEB' && props.web_prompt_type == 'edit-files') ||
+      (props.target == 'API' && props.api_prompt_type == 'edit-files') ||
+      (props.target == 'CLI' && props.cli_prompt_type == 'edit-files')) &&
+    props.selected_files.length == 0
 
   const handle_input_change = (value: string) => {
     props.set_instructions(value)
   }
 
   const handle_submit = async () => {
-    if (props.target == TARGET.WEB) {
+    if (props.target == 'WEB') {
       props.initialize_chats({})
-    } else {
+    } else if (props.target == 'API') {
       props.on_make_api_call(false)
+    } else if (props.target == 'CLI') {
+      props.on_invoke_agentic_cli(false)
     }
   }
 
   const handle_submit_with_control = async () => {
-    if (props.target == TARGET.WEB) {
+    if (props.target == 'WEB') {
       props.initialize_chats({
         show_quick_pick: true
       })
-    } else {
+    } else if (props.target == 'API') {
       props.on_make_api_call(true)
+    } else if (props.target == 'CLI') {
+      props.on_invoke_agentic_cli(true)
     }
   }
 
@@ -191,13 +218,16 @@ export const MainView: React.FC<Props> = (props) => {
     selected_web_configuration_name: props.selected_web_configuration_name,
     web_configurations: props.web_configurations,
     selected_api_configuration_id: props.selected_api_configuration_id,
-    api_configurations: props.api_configurations
+    api_configurations: props.api_configurations,
+    selected_cli_configuration_name: props.selected_cli_configuration_name,
+    cli_configurations: props.cli_configurations
   })
 
   const { is_alt_pressed } = use_keyboard_shortcuts({
     target: props.target,
     on_web_prompt_type_change: props.on_web_prompt_type_change,
     on_api_prompt_type_change: props.on_api_prompt_type_change,
+    on_cli_prompt_type_change: props.on_cli_prompt_type_change,
     on_show_home: props.on_show_home,
     on_agentic_search: props.on_agentic_search,
     is_disabled: props.are_keyboard_shortcuts_disabled
@@ -248,6 +278,29 @@ export const MainView: React.FC<Props> = (props) => {
       }
     })
 
+  const cli_configurations_ui: UiConfigurations.Configuration[] =
+    props.cli_configurations.map((c) => {
+      const is_unnamed = /^\(\d+\)$/.test(c.name.trim())
+      const display_name = is_unnamed
+        ? c.agent
+        : c.name.replace(/ \(\d+\)$/, '')
+
+      const details: string[] = []
+      if (is_unnamed) {
+        if (c.flags) details.push(c.flags)
+      } else {
+        details.push(c.agent)
+        if (c.flags) details.push(c.flags)
+      }
+
+      return {
+        id: c.name,
+        title: display_name,
+        details,
+        is_pinned: c.is_pinned
+      }
+    })
+
   const api_configurations_ui: UiConfigurations.Configuration[] =
     props.api_configurations.map((c) => {
       const details = [c.provider_name]
@@ -263,7 +316,7 @@ export const MainView: React.FC<Props> = (props) => {
     })
 
   const is_api_warning_visible =
-    props.target == TARGET.API &&
+    props.target == 'API' &&
     !!props.setup_progress &&
     (!props.setup_progress.has_provider || props.api_configurations.length == 0)
 
@@ -275,6 +328,8 @@ export const MainView: React.FC<Props> = (props) => {
       on_web_prompt_type_change={props.on_web_prompt_type_change}
       api_prompt_type={props.api_prompt_type}
       on_api_prompt_type_change={props.on_api_prompt_type_change}
+      cli_prompt_type={props.cli_prompt_type}
+      on_cli_prompt_type_change={props.on_cli_prompt_type_change}
       is_alt_pressed={is_alt_pressed}
       is_landscape={is_landscape}
       is_browser_connection_status_bar_closed={browser_connection.is_closed}
@@ -289,13 +344,17 @@ export const MainView: React.FC<Props> = (props) => {
       token_count={props.selected_files_token_count}
       files_count={props.selected_files.length}
       theme={
-        props.target == TARGET.WEB
+        props.target == 'WEB'
           ? props.web_prompt_type == 'edit-files'
             ? 'blue'
             : 'purple'
-          : props.api_prompt_type == 'edit-files'
-            ? 'blue'
-            : 'purple'
+          : props.target == 'API'
+            ? props.api_prompt_type == 'edit-files'
+              ? 'blue'
+              : 'purple'
+            : props.cli_prompt_type == 'edit-files'
+              ? 'blue'
+              : 'purple'
       }
       is_alt_pressed={is_alt_pressed}
       on_agentic_search={props.on_agentic_search}
@@ -312,7 +371,7 @@ export const MainView: React.FC<Props> = (props) => {
       <UiSpacer height={is_landscape ? 6 : 2} />
 
       <BrowserConnectionStatus
-        is_visible={props.target == TARGET.WEB}
+        is_visible={props.target == 'WEB'}
         is_connected={props.is_connected}
         is_closed={browser_connection.is_closed}
         on_close={browser_connection.handle_close}
@@ -348,9 +407,11 @@ export const MainView: React.FC<Props> = (props) => {
       )}
 
       {props.response_history.length > 0 &&
-        (props.target == TARGET.WEB
+        (props.target == 'WEB'
           ? props.web_prompt_type
-          : props.api_prompt_type) == 'edit-files' && (
+          : props.target == 'API'
+            ? props.api_prompt_type
+            : props.cli_prompt_type) == 'edit-files' && (
           <UiResponses
             response_history={props.response_history}
             on_response_history_item_click={
@@ -375,10 +436,10 @@ export const MainView: React.FC<Props> = (props) => {
       <div className={styles.prompt}>
         <UiPromptField
           is_copy_only={
-            props.target == TARGET.WEB &&
+            props.target == 'WEB' &&
             (!props.is_connected || !props.web_configurations.length)
           }
-          is_action_disabled={is_context_empty}
+          is_action_disabled={is_required_context_empty}
           value={props.instructions}
           chat_history={props.chat_history}
           on_change={handle_input_change}
@@ -388,7 +449,7 @@ export const MainView: React.FC<Props> = (props) => {
           on_at_sign_click={props.on_at_sign_click}
           on_hash_sign_click={props.on_hash_sign_click}
           on_slash_click={props.on_slash_click}
-          is_web_target={props.target == TARGET.WEB}
+          is_web_target={props.target == 'WEB'}
           is_connected={props.is_connected}
           current_selection={props.current_selection}
           send_with_shift_enter={props.send_with_shift_enter}
@@ -396,9 +457,11 @@ export const MainView: React.FC<Props> = (props) => {
           on_caret_position_change={props.on_caret_position_change}
           caret_position_to_set={props.caret_position_to_set}
           prompt_token_count={
-            (props.target == TARGET.WEB
+            (props.target == 'WEB'
               ? props.web_prompt_type
-              : props.api_prompt_type) == 'edit-files'
+              : props.target == 'API'
+                ? props.api_prompt_type
+                : props.cli_prompt_type) == 'edit-files'
               ? props.edit_instructions_token_count
               : props.ask_instructions_token_count
           }
@@ -412,20 +475,23 @@ export const MainView: React.FC<Props> = (props) => {
           selected_files={props.selected_files}
           on_go_to_file={props.on_go_to_file}
           on_pasted_lines_click={props.on_pasted_lines_click}
-          on_open_url={props.on_open_url}
           on_open_website={props.on_open_website}
           target={props.target}
           on_target_change={(target) => props.on_target_change(target)}
           active_border_color={
-            is_context_empty
+            is_required_context_empty
               ? 'yellow'
-              : props.target == TARGET.WEB
+              : props.target == 'WEB'
                 ? props.web_prompt_type == 'edit-files'
                   ? 'blue'
                   : 'purple'
-                : props.api_prompt_type == 'edit-files'
-                  ? 'blue'
-                  : 'purple'
+                : props.target == 'API'
+                  ? props.api_prompt_type == 'edit-files'
+                    ? 'blue'
+                    : 'purple'
+                  : props.cli_prompt_type == 'edit-files'
+                    ? 'blue'
+                    : 'purple'
           }
           on_paste_image={props.on_paste_image}
           on_open_image={props.on_open_image}
@@ -447,6 +513,9 @@ export const MainView: React.FC<Props> = (props) => {
           on_tabs_reorder={props.on_tabs_reorder}
           voice_input_push_to_talk={props.voice_input_push_to_talk}
           currently_open_file_path={props.currently_open_file_path}
+          are_keyboard_shortcuts_disabled={
+            props.are_keyboard_shortcuts_disabled
+          }
           translations={{
             voice_input: t('prompt-field.voice-input'),
             stop_recording: t('prompt-field.stop-recording'),
@@ -472,13 +541,12 @@ export const MainView: React.FC<Props> = (props) => {
             preview_prompt: t('prompt-field.action.preview-prompt'),
             send: t('prompt-field.action.send'),
             attach_selected_files: t('prompt-field.attach-selected-files'),
-            target: t('prompt-field.target'),
             more: t('prompt-field.more')
           }}
         />
       </div>
 
-      {is_context_empty ? (
+      {is_required_context_empty ? (
         <UiStatusBar
           placement="bottom"
           theme="warning"
@@ -504,7 +572,7 @@ export const MainView: React.FC<Props> = (props) => {
 
   const configurations_placeholder_above = (
     <>
-      {props.target == TARGET.WEB && (
+      {props.target == 'WEB' && (
         <>
           {!browser_connection.is_closed && (
             <>
@@ -539,7 +607,7 @@ export const MainView: React.FC<Props> = (props) => {
             )}
         </>
       )}
-      {props.target == TARGET.API && (
+      {props.target == 'API' && (
         <>
           {is_api_warning_visible && (
             <>
@@ -574,12 +642,29 @@ export const MainView: React.FC<Props> = (props) => {
             )}
         </>
       )}
+      {props.target == 'CLI' && (
+        <>
+          {props.response_history.length > 0 &&
+            props.cli_prompt_type === 'edit-files' && (
+              <UiResponses
+                response_history={props.response_history}
+                on_response_history_item_click={() => {}}
+                on_selected_history_item_change={() => {}}
+                on_response_history_item_remove={() => {}}
+                translations={{
+                  applied_manually: '',
+                  reject: ''
+                }}
+              />
+            )}
+        </>
+      )}
     </>
   )
 
   const configurations_placeholder_below = (
     <>
-      {props.target == TARGET.WEB && !browser_connection.is_closed && (
+      {props.target == 'WEB' && !browser_connection.is_closed && (
         <div style={{ visibility: 'hidden', pointerEvents: 'none' }}>
           {prompt_attachments}
         </div>
@@ -589,7 +674,7 @@ export const MainView: React.FC<Props> = (props) => {
 
   const configurations_section = (
     <>
-      {props.target == TARGET.WEB && (
+      {props.target == 'WEB' && (
         <UiConfigurations
           configurations={web_configurations}
           empty_landscape_placeholder_above={configurations_placeholder_above}
@@ -630,7 +715,7 @@ export const MainView: React.FC<Props> = (props) => {
         />
       )}
 
-      {props.target == TARGET.API && (
+      {props.target == 'API' && (
         <UiConfigurations
           configurations={api_configurations_ui}
           on_configuration_click={props.on_api_configuration_click}
@@ -646,6 +731,42 @@ export const MainView: React.FC<Props> = (props) => {
           empty_landscape_placeholder_below={configurations_placeholder_below}
           translations={{
             empty: t('configurations.empty'),
+            add_new: t('action.add-new'),
+            pin: t('action.pin'),
+            unpin: t('action.unpin'),
+            insert: t('action.insert'),
+            edit: t('action.edit'),
+            delete: t('action.delete')
+          }}
+        />
+      )}
+
+      {props.target == 'CLI' && (
+        <UiConfigurations
+          configurations={cli_configurations_ui}
+          empty_landscape_placeholder_above={configurations_placeholder_above}
+          on_create={(params) => {
+            props.on_create_cli_configuration(params)
+          }}
+          on_configuration_click={(id) => {
+            props.on_cli_configuration_click(id)
+          }}
+          on_edit={(id) => props.on_edit_cli_configuration(id)}
+          on_reorder={(reordered) => {
+            const new_cli_configurations = reordered.map((c) => {
+              return props.cli_configurations.find((p) => p.name == c.id)!
+            })
+            props.on_cli_configurations_reorder(new_cli_configurations)
+          }}
+          on_delete={(id) => {
+            props.on_delete_cli_configuration(id)
+          }}
+          on_toggle_pinned={(id) => {
+            props.on_toggle_pinned_cli_configuration(id)
+          }}
+          selected_configuration_id={props.selected_cli_configuration_name}
+          translations={{
+            empty: t('agents.empty'),
             add_new: t('action.add-new'),
             pin: t('action.pin'),
             unpin: t('action.unpin'),

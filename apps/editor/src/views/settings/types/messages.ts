@@ -1,5 +1,6 @@
 import { ApiFeature } from '@/views/shared/types/api-features'
-import { WebConfiguration } from '@shared/types/web-configuration'
+import { WebConfiguration } from '@/types/web-configuration'
+import { CliConfiguration } from '@/types/cli-configuration'
 
 export type Provider = {
   name: string
@@ -145,10 +146,6 @@ export interface OpenKeybindingsMessage {
   search?: string
 }
 
-export interface OpenExternalUrlMessage {
-  command: 'OPEN_EXTERNAL_URL'
-  url: string
-}
 
 export interface GetWebConfigurationsMessage {
   command: 'GET_WEB_CONFIGURATIONS'
@@ -193,6 +190,35 @@ export interface UpdateWebConfigurationMessage {
   origin?: 'cancel' | 'save'
   is_new?: boolean
   insertion_index?: number
+}
+
+export interface GetAgentConfigurationsMessage {
+  command: 'GET_CLI_CONFIGURATIONS'
+}
+export interface ReorderAgentConfigurationsMessage {
+  command: 'REORDER_CLI_CONFIGURATIONS'
+  cli_configurations: CliConfiguration[]
+}
+export interface DeleteAgentConfigurationMessage {
+  command: 'DELETE_CLI_CONFIGURATION'
+  name: string
+}
+export interface CreateAgentConfigurationMessage {
+  command: 'CREATE_CLI_CONFIGURATION'
+  insertion_index?: number
+  exact_insertion?: boolean
+}
+export interface UpdateAgentConfigurationMessage {
+  command: 'UPDATE_CLI_CONFIGURATION'
+  updating_cli_configuration: CliConfiguration
+  updated_cli_configuration: CliConfiguration
+  origin?: 'cancel' | 'save'
+  is_new?: boolean
+  insertion_index?: number
+}
+export interface PickAgentMessage {
+  command: 'PICK_AGENT'
+  agent_id?: string
 }
 
 export interface CreateApiConfigurationMessage {
@@ -317,7 +343,6 @@ export type FrontendMessage =
   | OpenIgnorePatternsSettingsMessage
   | OpenAllowPatternsSettingsMessage
   | OpenKeybindingsMessage
-  | OpenExternalUrlMessage
   | GetWebConfigurationsMessage
   | ReorderWebConfigurationsMessage
   | DeleteWebConfigurationMessage
@@ -339,6 +364,14 @@ export type FrontendMessage =
   | UpdateTemplatesMessage
   | CreateTemplateMessage
   | DeleteTemplateMessage
+  | GetAgentConfigurationsMessage
+  | ReorderAgentConfigurationsMessage
+  | DeleteAgentConfigurationMessage
+  | CreateAgentConfigurationMessage
+  | UpdateAgentConfigurationMessage
+  | PickAgentMessage
+  | SetDefaultAgentConfigurationMessage
+  | SelectDefaultAgentConfigurationMessage
 
 // === FROM BACKEND TO FRONTEND ===
 export interface ProvidersMessage {
@@ -417,6 +450,36 @@ export interface NewlyPickedChatbotMessage {
 export interface NewlyPickedReasoningEffortMessage {
   command: 'NEWLY_PICKED_REASONING_EFFORT'
   effort: string
+}
+
+
+export interface SetDefaultAgentConfigurationMessage {
+  command: 'SET_DEFAULT_CLI_CONFIGURATION'
+  cli_feature: string
+  cli_configuration_name: string | null
+}
+
+export interface SelectDefaultAgentConfigurationMessage {
+  command: 'SELECT_DEFAULT_CLI_CONFIGURATION'
+  cli_feature: string
+}
+
+export interface AgentConfigurationsMessage {
+  command: 'CLI_CONFIGURATIONS'
+  cli_configurations: CliConfiguration[]
+  defaults?: Record<string, string | null>
+}
+export interface AgentConfigurationUpdatedMessage {
+  command: 'CLI_CONFIGURATION_UPDATED'
+}
+export interface StartAgentConfigurationCreationMessage {
+  command: 'START_CLI_CONFIGURATION_CREATION'
+  cli_configuration: CliConfiguration
+  insertion_index?: number
+}
+export interface NewlyPickedAgentMessage {
+  command: 'NEWLY_PICKED_AGENT'
+  agent_id: string
 }
 
 export interface WebConfigurationUpdatedMessage {
@@ -510,3 +573,7 @@ export type BackendMessage =
   | IsModernUiMessage
   | TemplatesMessage
   | StartTemplateCreationMessage
+  | AgentConfigurationsMessage
+  | AgentConfigurationUpdatedMessage
+  | StartAgentConfigurationCreationMessage
+  | NewlyPickedAgentMessage

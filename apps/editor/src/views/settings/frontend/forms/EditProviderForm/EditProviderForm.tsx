@@ -19,7 +19,6 @@ export type ProviderDraft = {
 type Props = {
   provider: Provider
   on_update: (draft: ProviderDraft) => void
-  on_open_external_url: (url: string) => void
 }
 
 export const EditProviderForm: React.FC<Props> = (props) => {
@@ -96,11 +95,9 @@ export const EditProviderForm: React.FC<Props> = (props) => {
                 if (val) set_is_api_key_cleared(false)
               }}
               placeholder={
-                is_api_key_cleared
-                  ? t('edit-provider-form.api-key.placeholder.cleared')
-                  : props.provider.api_key_mask
-                    ? `...${props.provider.api_key_mask.slice(-4)}`
-                    : t('edit-provider-form.api-key.placeholder.default')
+                is_api_key_cleared || !props.provider.api_key_mask
+                  ? t('edit-provider-form.api-key.placeholder.default')
+                  : `...${props.provider.api_key_mask.slice(-4)}`
               }
             />
           </UiField>
@@ -111,15 +108,7 @@ export const EditProviderForm: React.FC<Props> = (props) => {
               info={
                 <>
                   {t('edit-provider-form.extended-cache.anthropic.description')}{' '}
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault()
-                      props.on_open_external_url(
-                        'https://platform.claude.com/docs/en/build-with-claude/prompt-caching#ttl-support'
-                      )
-                    }}
-                  >
+                  <a href="https://platform.claude.com/docs/en/build-with-claude/prompt-caching#ttl-support">
                     {t(
                       'edit-provider-form.extended-cache.anthropic.learn-more'
                     )}

@@ -1,9 +1,9 @@
-import * as WebSocket from 'ws'
-import * as vscode from 'vscode'
 import * as child_process from 'child_process'
 import * as http from 'http'
-import * as path from 'path'
 import * as net from 'net'
+import * as path from 'path'
+import * as WebSocket from 'ws'
+import * as vscode from 'vscode'
 import {
   ApplyResponseMessage,
   ConnectedBrowser,
@@ -13,7 +13,7 @@ import {
 import { CHATBOTS } from '@shared/constants/chatbots'
 import { DEFAULT_PORT, SECURITY_TOKENS } from '@shared/constants/websocket'
 import { Logger } from '@shared/utils/logger'
-import { WebConfiguration } from '@shared/types/web-configuration'
+import { WebConfiguration } from '@/types/web-configuration'
 import { ConfigWebConfigurationFormat } from '@/utils/web-configuration-format-converters'
 import { LAST_SELECTED_BROWSER_ID_STATE_KEY } from '@/constants/state-keys'
 import { ApplyResponseCommandArgs } from '@/commands/apply-response-command/response-processor'
@@ -26,7 +26,7 @@ import { t } from '@/i18n'
 export class WebSocketManager {
   private extension_context: vscode.ExtensionContext
   private port: number = DEFAULT_PORT
-  private security_token: string = SECURITY_TOKENS.VSCODE
+  private security_token: string = SECURITY_TOKENS.EDITOR
   private client: WebSocket.WebSocket | null = null
   private _on_connection_status_change: vscode.EventEmitter<boolean> =
     new vscode.EventEmitter<boolean>()
@@ -438,7 +438,7 @@ export class WebSocketManager {
           url = chatbot.url
           vscode.window.showWarningMessage(
             t('service.websocket-manager.url-override-different-domain', {
-              preset_name: web_configuration.name!
+              preset_name: web_configuration.name
             })
           )
         }
@@ -544,7 +544,7 @@ export class WebSocketManager {
           url = chatbot.url
           vscode.window.showWarningMessage(
             t('service.websocket-manager.url-override-different-domain', {
-              preset_name: params.web_configuration.name!
+              preset_name: params.web_configuration.name
             })
           )
         }

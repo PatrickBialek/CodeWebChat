@@ -4,10 +4,15 @@ import {
   ResponseHistoryItem,
   RecentApiConfiguration
 } from '@shared/types/response-history-item'
-import { WebConfiguration } from '@shared/types/web-configuration'
+import { WebConfiguration } from '@/types/web-configuration'
+import { CliConfiguration } from '@/types/cli-configuration'
 import { Task } from '@shared/types/task'
-import { ApiPromptType, WebPromptType } from '@shared/types/prompt-types'
-import { Target } from '@shared/types/mode'
+import {
+  ApiPromptType,
+  WebPromptType,
+  CliPromptType
+} from '@shared/types/prompt-types'
+import { Target } from '@shared/types/target'
 
 type BaseMessage = {
   command: string
@@ -159,6 +164,45 @@ export interface DeleteWebConfigurationMessage extends BaseMessage {
   name: string
 }
 
+export interface GetAgentConfigurationsMessage extends BaseMessage {
+  command: 'GET_CLI_CONFIGURATIONS'
+}
+
+export interface ReorderAgentConfigurationsMessage extends BaseMessage {
+  command: 'REORDER_CLI_CONFIGURATIONS'
+  cli_configurations: CliConfiguration[]
+}
+
+export interface TogglePinnedAgentConfigurationMessage extends BaseMessage {
+  command: 'TOGGLE_PINNED_CLI_CONFIGURATION'
+  cli_configuration_name: string
+}
+
+export interface CreateAgentConfigurationMessage extends BaseMessage {
+  command: 'CREATE_CLI_CONFIGURATION'
+  reference_index?: number
+  exact_insertion?: boolean
+}
+
+export interface UpdateAgentConfigurationMessage extends BaseMessage {
+  command: 'UPDATE_CLI_CONFIGURATION'
+  updating_cli_configuration: CliConfiguration
+  updated_cli_configuration: CliConfiguration
+  origin?: 'cancel' | 'save'
+  is_new?: boolean
+  insertion_index?: number
+}
+
+export interface DeleteAgentConfigurationMessage extends BaseMessage {
+  command: 'DELETE_CLI_CONFIGURATION'
+  name: string
+}
+
+export interface PickAgentMessage extends BaseMessage {
+  command: 'PICK_AGENT'
+  agent_id?: string
+}
+
 export interface ExecuteCommandMessage extends BaseMessage {
   command: 'EXECUTE_COMMAND'
   command_id: string
@@ -220,6 +264,21 @@ export interface ShowHashSignQuickPickMessage extends BaseMessage {
 
 export interface CancelApiRequestMessage extends BaseMessage {
   command: 'CANCEL_API_REQUEST'
+}
+
+export interface GetCliPromptTypeMessage extends BaseMessage {
+  command: 'GET_CLI_PROMPT_TYPE'
+}
+
+export interface SaveCliPromptTypeMessage extends BaseMessage {
+  command: 'SAVE_CLI_PROMPT_TYPE'
+  prompt_type: CliPromptType
+}
+
+export interface InvokeAgenticCliMessage extends BaseMessage {
+  command: 'INVOKE_AGENTIC_CLI'
+  use_quick_pick?: boolean
+  cli_configuration_name?: string
 }
 
 export interface GetWebPromptTypeMessage extends BaseMessage {
@@ -402,11 +461,6 @@ export interface UpdateFileProgressMessage extends BaseMessage {
   apply_tokens_per_second?: number
 }
 
-export interface OpenExternalUrlMessage extends BaseMessage {
-  command: 'OPEN_EXTERNAL_URL'
-  url: string
-}
-
 export interface OpenWebsiteMessage extends BaseMessage {
   command: 'OPEN_WEBSITE'
   url: string
@@ -587,6 +641,9 @@ export type FrontendMessage =
   | GetWebPromptTypeMessage
   | GetApiPromptTypeMessage
   | SaveApiPromptTypeMessage
+  | GetCliPromptTypeMessage
+  | SaveCliPromptTypeMessage
+  | InvokeAgenticCliMessage
   | GetApiConfigurationsMessage
   | ReorderApiConfigurationsMessage
   | TogglePinnedApiConfigurationMessage
@@ -618,7 +675,6 @@ export type FrontendMessage =
   | DeleteTaskMessage
   | PreviewGeneratedCodeMessage
   | UpdateFileProgressMessage
-  | OpenExternalUrlMessage
   | CreateApiConfigurationMessage
   | DeleteApiConfigurationMessage
   | SavePromptImageMessage
@@ -645,6 +701,13 @@ export type FrontendMessage =
   | PreviewCommitSymbolMessage
   | PreviewSkillSymbolMessage
   | AgenticSearchMessage
+  | GetAgentConfigurationsMessage
+  | ReorderAgentConfigurationsMessage
+  | TogglePinnedAgentConfigurationMessage
+  | CreateAgentConfigurationMessage
+  | UpdateAgentConfigurationMessage
+  | DeleteAgentConfigurationMessage
+  | PickAgentMessage
 
 // === FROM BACKEND TO FRONTEND ===
 export interface InstructionsMessage extends BaseMessage {
@@ -681,6 +744,30 @@ export interface WebConfigurationsMessage extends BaseMessage {
 export interface ApiConfigurationsMessage extends BaseMessage {
   command: 'API_CONFIGURATIONS'
   configurations: ApiConfiguration[]
+}
+
+export interface AgentConfigurationsMessage extends BaseMessage {
+  command: 'CLI_CONFIGURATIONS'
+  cli_configurations: CliConfiguration[]
+  selected_cli_configuration_name_by_mode?: { [T in CliPromptType]?: string }
+}
+export interface AgentConfigurationUpdatedMessage extends BaseMessage {
+  command: 'CLI_CONFIGURATION_UPDATED'
+}
+export interface StartAgentConfigurationCreationMessage extends BaseMessage {
+  command: 'START_CLI_CONFIGURATION_CREATION'
+  cli_configuration: CliConfiguration
+  insertion_index?: number
+}
+export interface NewlyPickedAgentMessage extends BaseMessage {
+  command: 'NEWLY_PICKED_AGENT'
+  agent_id: string
+}
+
+export interface SelectedAgentConfigurationChangedMessage extends BaseMessage {
+  command: 'SELECTED_CLI_CONFIGURATION_CHANGED'
+  prompt_type: CliPromptType
+  name: string
 }
 
 export interface EditorStateChangedMessage extends BaseMessage {
@@ -743,6 +830,11 @@ export interface WebPromptTypeMessage extends BaseMessage {
 export interface ApiPromptTypeMessage extends BaseMessage {
   command: 'API_PROMPT_TYPE'
   prompt_type: ApiPromptType
+}
+
+export interface CliPromptTypeMessage extends BaseMessage {
+  command: 'CLI_PROMPT_TYPE'
+  prompt_type: CliPromptType
 }
 
 export interface VersionMessage extends BaseMessage {
@@ -908,6 +1000,7 @@ export type BackendMessage =
   | TargetMessage
   | WebPromptTypeMessage
   | ApiPromptTypeMessage
+  | CliPromptTypeMessage
   | VersionMessage
   | SelectedFilesMessage
   | SendWithShiftEnterMessage
@@ -940,3 +1033,8 @@ export type BackendMessage =
   | StartApiConfigurationCreationMessage
   | TasksWorkspacePickedMessage
   | IsModernUiMessage
+  | AgentConfigurationsMessage
+  | AgentConfigurationUpdatedMessage
+  | StartAgentConfigurationCreationMessage
+  | NewlyPickedAgentMessage
+  | SelectedAgentConfigurationChangedMessage

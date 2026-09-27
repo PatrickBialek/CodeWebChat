@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { PromptField, type EditFormat } from './PromptField'
-import { TARGET } from '@shared/types/mode'
 
 export default {
   component: PromptField
@@ -19,7 +18,7 @@ export const Empty = () => (
     currently_open_file_path="/path/to/file"
     on_caret_position_change={(pos) => console.log('Caret position:', pos)}
     is_web_target={false}
-    target={TARGET.API}
+    target="API"
     on_target_change={(target) => console.log('Target changed:', target)}
     on_at_sign_click={() => console.log('@ clicked')}
     on_hash_sign_click={() => console.log('# clicked')}
@@ -30,13 +29,12 @@ export const Empty = () => (
     on_pasted_lines_click={(path, start, end) =>
       console.log('Pasted lines clicked:', path, start, end)
     }
-    on_open_url={(url) => console.log('Open URL:', url)}
-    on_open_website={(url) => console.log('Open website:', url)}
     on_paste_image={(content) => console.log('Paste image:', content)}
     on_paste_long_text={(content) => console.log('Paste long text:', content)}
     on_open_image={(hash) => console.log('Open image:', hash)}
     on_open_pasted_text={(hash) => console.log('Open pasted text:', hash)}
     on_paste_url={(url) => console.log('Paste URL:', url)}
+    on_open_website={(url) => console.log('Open website:', url)}
     is_recording={false}
     on_recording_started={() => console.log('Recording started')}
     on_recording_finished={() => console.log('Recording finished')}
@@ -67,7 +65,6 @@ export const Empty = () => (
       preview_prompt: 'Preview prompt',
       send: 'Send',
       attach_selected_files: 'Attach selected files',
-      target: 'Target',
       more: 'More'
     }}
   />
@@ -86,7 +83,7 @@ export const WithText = () => (
     currently_open_file_path="/path/to/file"
     on_caret_position_change={(pos) => console.log('Caret position:', pos)}
     is_web_target={false}
-    target={TARGET.API}
+    target="API"
     on_target_change={(target) => console.log('Target changed:', target)}
     on_at_sign_click={() => console.log('@ clicked')}
     on_hash_sign_click={() => console.log('# clicked')}
@@ -97,13 +94,12 @@ export const WithText = () => (
     on_pasted_lines_click={(path, start, end) =>
       console.log('Pasted lines clicked:', path, start, end)
     }
-    on_open_url={(url) => console.log('Open URL:', url)}
-    on_open_website={(url) => console.log('Open website:', url)}
     on_paste_image={(content) => console.log('Paste image:', content)}
     on_paste_long_text={(content) => console.log('Paste long text:', content)}
     on_open_image={(hash) => console.log('Open image:', hash)}
     on_open_pasted_text={(hash) => console.log('Open pasted text:', hash)}
     on_paste_url={(url) => console.log('Paste URL:', url)}
+    on_open_website={(url) => console.log('Open website:', url)}
     is_recording={false}
     on_recording_started={() => console.log('Recording started')}
     on_recording_finished={() => console.log('Recording finished')}
@@ -134,7 +130,6 @@ export const WithText = () => (
       preview_prompt: 'Preview prompt',
       send: 'Send',
       attach_selected_files: 'Attach selected files',
-      target: 'Target',
       more: 'More'
     }}
   />
@@ -154,7 +149,7 @@ export const LongText = () => (
     currently_open_file_path="/path/to/file"
     on_caret_position_change={(pos) => console.log('Caret position:', pos)}
     is_web_target={false}
-    target={TARGET.API}
+    target="API"
     on_target_change={(target) => console.log('Target changed:', target)}
     on_at_sign_click={() => console.log('@ clicked')}
     on_hash_sign_click={() => console.log('# clicked')}
@@ -165,13 +160,12 @@ export const LongText = () => (
     on_pasted_lines_click={(path, start, end) =>
       console.log('Pasted lines clicked:', path, start, end)
     }
-    on_open_url={(url) => console.log('Open URL:', url)}
-    on_open_website={(url) => console.log('Open website:', url)}
     on_paste_image={(content) => console.log('Paste image:', content)}
     on_paste_long_text={(content) => console.log('Paste long text:', content)}
     on_open_image={(hash) => console.log('Open image:', hash)}
     on_open_pasted_text={(hash) => console.log('Open pasted text:', hash)}
     on_paste_url={(url) => console.log('Paste URL:', url)}
+    on_open_website={(url) => console.log('Open website:', url)}
     is_recording={false}
     on_recording_started={() => console.log('Recording started')}
     on_recording_finished={() => console.log('Recording finished')}
@@ -201,7 +195,6 @@ export const LongText = () => (
       preview_prompt: 'Preview prompt',
       send: 'Send',
       attach_selected_files: 'Attach selected files',
-      target: 'Target',
       more: 'More'
     }}
   />
@@ -219,7 +212,7 @@ export const WithPlaceholderSavedContext = () => (
     current_selection={null}
     currently_open_file_path="/path/to/file"
     on_caret_position_change={(pos) => console.log('Caret position:', pos)}
-    target={TARGET.API}
+    target="API"
     on_target_change={(target) => console.log('Target changed:', target)}
     on_at_sign_click={() => console.log('@ clicked')}
     on_hash_sign_click={() => console.log('# clicked')}
@@ -231,13 +224,12 @@ export const WithPlaceholderSavedContext = () => (
     on_pasted_lines_click={(path, start, end) =>
       console.log('Pasted lines clicked:', path, start, end)
     }
-    on_open_url={(url) => console.log('Open URL:', url)}
-    on_open_website={(url) => console.log('Open website:', url)}
     on_paste_image={(content) => console.log('Paste image:', content)}
     on_paste_long_text={(content) => console.log('Paste long text:', content)}
     on_open_image={(hash) => console.log('Open image:', hash)}
     on_open_pasted_text={(hash) => console.log('Open pasted text:', hash)}
     on_paste_url={(url) => console.log('Paste URL:', url)}
+    on_open_website={(url) => console.log('Open website:', url)}
     is_recording={false}
     on_recording_started={() => console.log('Recording started')}
     on_recording_finished={() => console.log('Recording finished')}
@@ -268,7 +260,6 @@ export const WithPlaceholderSavedContext = () => (
       preview_prompt: 'Preview prompt',
       send: 'Send',
       attach_selected_files: 'Attach selected files',
-      target: 'Target',
       more: 'More'
     }}
   />
@@ -286,7 +277,7 @@ export const WithCommit = () => (
     current_selection={null}
     currently_open_file_path="/path/to/file"
     on_caret_position_change={(pos) => console.log('Caret position:', pos)}
-    target={TARGET.API}
+    target="API"
     on_target_change={(target) => console.log('Target changed:', target)}
     on_at_sign_click={() => console.log('@ clicked')}
     on_hash_sign_click={() => console.log('# clicked')}
@@ -298,13 +289,12 @@ export const WithCommit = () => (
     on_pasted_lines_click={(path, start, end) =>
       console.log('Pasted lines clicked:', path, start, end)
     }
-    on_open_url={(url) => console.log('Open URL:', url)}
-    on_open_website={(url) => console.log('Open website:', url)}
     on_paste_image={(content) => console.log('Paste image:', content)}
     on_paste_long_text={(content) => console.log('Paste long text:', content)}
     on_open_image={(hash) => console.log('Open image:', hash)}
     on_open_pasted_text={(hash) => console.log('Open pasted text:', hash)}
     on_paste_url={(url) => console.log('Paste URL:', url)}
+    on_open_website={(url) => console.log('Open website:', url)}
     is_recording={false}
     on_recording_started={() => console.log('Recording started')}
     on_recording_finished={() => console.log('Recording finished')}
@@ -335,7 +325,6 @@ export const WithCommit = () => (
       preview_prompt: 'Preview prompt',
       send: 'Send',
       attach_selected_files: 'Attach selected files',
-      target: 'Target',
       more: 'More'
     }}
   />
@@ -352,7 +341,7 @@ export const WithCommitWithQuotes = () => (
     current_selection={null}
     currently_open_file_path="/path/to/file"
     on_caret_position_change={(pos) => console.log('Caret position:', pos)}
-    target={TARGET.API}
+    target="API"
     on_target_change={(target) => console.log('Target changed:', target)}
     on_at_sign_click={() => console.log('@ clicked')}
     on_hash_sign_click={() => console.log('# clicked')}
@@ -364,13 +353,12 @@ export const WithCommitWithQuotes = () => (
     on_pasted_lines_click={(path, start, end) =>
       console.log('Pasted lines clicked:', path, start, end)
     }
-    on_open_url={(url) => console.log('Open URL:', url)}
-    on_open_website={(url) => console.log('Open website:', url)}
     on_paste_image={(content) => console.log('Paste image:', content)}
     on_paste_long_text={(content) => console.log('Paste long text:', content)}
     on_open_image={(hash) => console.log('Open image:', hash)}
     on_open_pasted_text={(hash) => console.log('Open pasted text:', hash)}
     on_paste_url={(url) => console.log('Paste URL:', url)}
+    on_open_website={(url) => console.log('Open website:', url)}
     is_recording={false}
     on_recording_started={() => console.log('Recording started')}
     on_recording_finished={() => console.log('Recording finished')}
@@ -401,7 +389,6 @@ export const WithCommitWithQuotes = () => (
       preview_prompt: 'Preview prompt',
       send: 'Send',
       attach_selected_files: 'Attach selected files',
-      target: 'Target',
       more: 'More'
     }}
   />
@@ -422,7 +409,7 @@ export const WithEditFormatSelector = () => {
       currently_open_file_path="/path/to/file"
       on_caret_position_change={(pos) => console.log('Caret position:', pos)}
       is_web_target={false}
-      target={TARGET.API}
+      target="API"
       on_target_change={(target) => console.log('Target changed:', target)}
       on_at_sign_click={() => console.log('@ clicked')}
       on_hash_sign_click={() => console.log('# clicked')}
@@ -438,13 +425,12 @@ export const WithEditFormatSelector = () => {
       on_pasted_lines_click={(path, start, end) =>
         console.log('Pasted lines clicked:', path, start, end)
       }
-      on_open_url={(url) => console.log('Open URL:', url)}
-      on_open_website={(url) => console.log('Open website:', url)}
       on_paste_image={(content) => console.log('Paste image:', content)}
       on_paste_long_text={(content) => console.log('Paste long text:', content)}
       on_open_image={(hash) => console.log('Open image:', hash)}
       on_open_pasted_text={(hash) => console.log('Open pasted text:', hash)}
       on_paste_url={(url) => console.log('Paste URL:', url)}
+      on_open_website={(url) => console.log('Open website:', url)}
       is_recording={false}
       on_recording_started={() => console.log('Recording started')}
       on_recording_finished={() => console.log('Recording finished')}
@@ -475,7 +461,6 @@ export const WithEditFormatSelector = () => {
         preview_prompt: 'Preview prompt',
         send: 'Send',
         attach_selected_files: 'Attach selected files',
-        target: 'Target',
         more: 'More'
       }}
     />
@@ -495,7 +480,7 @@ export const WithWarning = () => (
     currently_open_file_path="/path/to/file"
     on_caret_position_change={(pos) => console.log('Caret position:', pos)}
     is_web_target={true}
-    target={TARGET.WEB}
+    target="WEB"
     on_target_change={(target) => console.log('Target changed:', target)}
     on_at_sign_click={() => console.log('@ clicked')}
     on_hash_sign_click={() => console.log('# clicked')}
@@ -504,13 +489,12 @@ export const WithWarning = () => (
     on_slash_click={() => {}}
     on_go_to_file={(path) => console.log('Go to file:', path)}
     on_pasted_lines_click={() => {}}
-    on_open_url={() => {}}
-    on_open_website={() => {}}
     on_paste_image={() => {}}
     on_paste_long_text={() => {}}
     on_open_image={() => {}}
     on_open_pasted_text={() => {}}
     on_paste_url={() => {}}
+    on_open_website={() => {}}
     is_recording={false}
     on_recording_started={() => {}}
     on_recording_finished={() => {}}
@@ -541,7 +525,6 @@ export const WithWarning = () => (
       preview_prompt: 'Preview prompt',
       send: 'Send',
       attach_selected_files: 'Attach selected files',
-      target: 'Target',
       more: 'More'
     }}
   />
@@ -560,7 +543,7 @@ export const WithFilePaths = () => (
     currently_open_file_path="/path/to/file"
     on_caret_position_change={(pos) => console.log('Caret position:', pos)}
     is_web_target={false}
-    target={TARGET.API}
+    target="API"
     on_target_change={(target) => console.log('Target changed:', target)}
     on_at_sign_click={() => console.log('@ clicked')}
     on_hash_sign_click={() => console.log('# clicked')}
@@ -571,13 +554,12 @@ export const WithFilePaths = () => (
     on_pasted_lines_click={(path, start, end) =>
       console.log('Pasted lines clicked:', path, start, end)
     }
-    on_open_url={(url) => console.log('Open URL:', url)}
-    on_open_website={(url) => console.log('Open website:', url)}
     on_paste_image={(content) => console.log('Paste image:', content)}
     on_paste_long_text={(content) => console.log('Paste long text:', content)}
     on_open_image={(hash) => console.log('Open image:', hash)}
     on_open_pasted_text={(hash) => console.log('Open pasted text:', hash)}
     on_paste_url={(url) => console.log('Paste URL:', url)}
+    on_open_website={(url) => console.log('Open website:', url)}
     is_recording={false}
     on_recording_started={() => console.log('Recording started')}
     on_recording_finished={() => console.log('Recording finished')}
@@ -608,7 +590,6 @@ export const WithFilePaths = () => (
       preview_prompt: 'Preview prompt',
       send: 'Send',
       attach_selected_files: 'Attach selected files',
-      target: 'Target',
       more: 'More'
     }}
   />
@@ -655,7 +636,7 @@ export const WithTabs = () => {
       currently_open_file_path="/path/to/file"
       on_caret_position_change={(pos) => console.log('Caret position:', pos)}
       is_web_target={false}
-      target={TARGET.API}
+      target="API"
       on_target_change={(target) => console.log('Target changed:', target)}
       on_at_sign_click={() => console.log('@ clicked')}
       on_hash_sign_click={() => console.log('# clicked')}
@@ -666,13 +647,12 @@ export const WithTabs = () => {
       on_pasted_lines_click={(path, start, end) =>
         console.log('Pasted lines clicked:', path, start, end)
       }
-      on_open_url={(url) => console.log('Open URL:', url)}
-      on_open_website={(url) => console.log('Open website:', url)}
       on_paste_image={(content) => console.log('Paste image:', content)}
       on_paste_long_text={(content) => console.log('Paste long text:', content)}
       on_open_image={(hash) => console.log('Open image:', hash)}
       on_open_pasted_text={(hash) => console.log('Open pasted text:', hash)}
       on_paste_url={(url) => console.log('Paste URL:', url)}
+      on_open_website={(url) => console.log('Open website:', url)}
       is_recording={false}
       on_recording_started={() => console.log('Recording started')}
       on_recording_finished={() => console.log('Recording finished')}
@@ -703,7 +683,6 @@ export const WithTabs = () => {
         preview_prompt: 'Preview prompt',
         send: 'Send',
         attach_selected_files: 'Attach selected files',
-        target: 'Target',
         more: 'More'
       }}
     />

@@ -31,6 +31,7 @@ export const DUPLICATE_WORKSPACE_CONTEXT_STATE_KEY =
 export const EDIT_FORMAT_STATE_KEY = 'edit-format'
 export const WEB_TARGET_STATE_KEY = 'web-target'
 export const API_TARGET_STATE_KEY = 'api-target'
+export const CLI_TARGET_STATE_KEY = 'cli-target'
 export const PROMPT_VIEW_TARGET_STATE_KEY = 'prompt-view-target'
 
 export const INSTRUCTIONS_EDIT_FILES_STATE_KEY = 'instructions-edit-files'
@@ -61,6 +62,9 @@ export const LAST_USED_VOICE_INPUT_CONFIG_ID_STATE_KEY =
 export const get_last_used_web_configuration_key = (web_prompt_type: string) =>
   `last-used-web-configuration-${web_prompt_type}`
 
+export const get_last_used_cli_configuration_key = (prompt_type: string) =>
+  `last-used-agent-configuration-${prompt_type}`
+
 export const get_last_used_template_key = (prompt_type: string) =>
   `last-used-template-${prompt_type}`
 
@@ -87,6 +91,8 @@ export const LAST_SEARCH_SELECTED_FILES_FOR_CONTEXT_MODE_STATE_KEY =
 export const LAST_AGENTIC_SEARCH_QUERY_STATE_KEY = 'last-agentic-search-query'
 export const LAST_SELECTED_WORKSPACE_IN_AGENTIC_SEARCH_STATE_KEY =
   'last-selected-workspace-in-agentic-search'
+export const LAST_SELECTED_WORKSPACE_IN_AGENTIC_CLI_STATE_KEY =
+  'last-selected-workspace-in-agentic-cli'
 export const LAST_USED_AGENTIC_SEARCH_AGENT_STATE_KEY =
   'last-used-agentic-search-agent'
 

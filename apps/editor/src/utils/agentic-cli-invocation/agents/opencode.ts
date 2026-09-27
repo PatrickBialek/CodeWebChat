@@ -1,0 +1,93 @@
+import { CodingAgent } from '../types'
+import { check_command_exists } from '../utils/check-command-exists'
+import { get_progress_dots } from '../utils/get-progress-dots'
+import { AGENTS } from '../../../constants/agents'
+
+let last_action_name = ''
+let action_count = 0
+
+const agent_name = 'OpenCode'
+
+export const opencode_agent: CodingAgent = {
+  id: 'opencode',
+  label: agent_name,
+  cmd: 'opencode',
+  is_installed: () => check_command_exists('opencode'),
+  get_documentation_url: () => AGENTS[agent_name].docs_url,
+  get_edit_args: (prompt: string) => [
+    'run',
+    prompt,
+    '--format',
+    'json',
+    '--auto'
+  ],
+  get_ask_args: (prompt: string) => [
+    'run',
+    prompt,
+    '--mode',
+    'plan'
+  ],
+  parse_stream_line: (parsed, report_progress) => {
+    let action_name = ''
+    if (parsed.type == 'tool_use' && parsed.part?.tool) {
+      action_name = parsed.part.tool
+    } else if (parsed.type == 'tool_call' && parsed.tool) {
+      action_name = parsed.tool
+    }
+
+    if (action_name) {
+      action_name = action_name.replace(/_/g, ' ')
+      if (action_name === last_action_name) {
+        action_count++
+      } else {
+        last_action_name = action_name
+        action_count = 1
+      }
+      report_progress(`${action_name}${get_progress_dots(action_count)}`)
+    } else if (parsed.type == 'result' && parsed.result) {
+      last_action_name = ''
+      action_count = 0
+      return {
+        output:
+          typeof parsed.result == 'string'
+            ? parsed.result
+            : parsed.result.text || ''
+      }
+    } else if (parsed.type == 'text' && parsed.part?.text) {
+      last_action_name = ''
+      action_count = 0
+      return { output: parsed.part.text }
+    } else if (parsed.text) {
+      last_action_name = ''
+      action_count = 0
+      return { output: parsed.text }
+    } else if (parsed.output) {
+      last_action_name = ''
+      action_count = 0
+      return {
+        output:
+          typeof parsed.output == 'string'
+            ? parsed.output
+            : parsed.output.text || ''
+      }
+    }
+  },
+  parse_final_output: (parsed, current_output) => {
+    last_action_name = ''
+    action_count = 0
+    if (parsed.type == 'result' && parsed.result) {
+      return typeof parsed.result == 'string'
+        ? parsed.result
+        : parsed.result.text || ''
+    } else if (parsed.type == 'text' && parsed.part?.text) {
+      return parsed.part.text
+    } else if (parsed.text) {
+      return parsed.text
+    } else if (parsed.output) {
+      return typeof parsed.output == 'string'
+        ? parsed.output
+        : parsed.output.text || ''
+    }
+    return current_output
+  }
+}

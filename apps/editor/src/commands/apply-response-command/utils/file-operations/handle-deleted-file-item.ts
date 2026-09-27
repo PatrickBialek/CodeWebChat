@@ -1,6 +1,6 @@
-import * as vscode from 'vscode'
-import * as path from 'path'
 import * as fs from 'fs'
+import * as path from 'path'
+import * as vscode from 'vscode'
 import { Logger } from '@shared/utils/logger'
 import { OriginalFileState } from '@/commands/apply-response-command/types/original-file-state'
 import { FileItem } from '../response-parser'
@@ -8,6 +8,7 @@ import { get_rename_source_info } from './get-rename-source-info'
 import { cleanup_rename_source } from './cleanup-rename-source'
 import { close_file_tabs } from './close-file-tabs'
 import { remove_directory_if_empty } from './remove-directory-if-empty'
+import { get_error_message } from '@/utils/get-error-message'
 
 export const handle_deleted_file_item = async (params: {
   file: FileItem
@@ -54,7 +55,7 @@ export const handle_deleted_file_item = async (params: {
         function_name: params.function_name,
         message: 'Failed to delete file',
         data: {
-          error: error instanceof Error ? error.message : String(error),
+          error: get_error_message(error),
           file_path: params.safe_path
         }
       })

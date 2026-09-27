@@ -1,5 +1,5 @@
-import * as vscode from 'vscode'
 import * as path from 'path'
+import * as vscode from 'vscode'
 import { Logger } from '@shared/utils/logger'
 import { t } from '@/i18n'
 import { OriginalFileState } from '@/commands/apply-response-command/types/original-file-state'
@@ -7,6 +7,7 @@ import { create_safe_path } from '@/utils/path-sanitizer'
 import { uri_exists } from './uri-exists'
 import { remove_directory_if_empty } from './remove-directory-if-empty'
 import { relocate_file } from './relocate-file'
+import { get_error_message } from '@/utils/get-error-message'
 import {
   get_workspace_map_and_default,
   resolve_workspace_root
@@ -243,7 +244,7 @@ export const undo_files = async (params: {
     console.error('Error during undo:', error)
     vscode.window.showErrorMessage(
       t('command.apply-response-command.error.failed-to-undo', {
-        msg: error instanceof Error ? error.message : String(error)
+        msg: get_error_message(error)
       })
     )
     return false

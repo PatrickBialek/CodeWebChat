@@ -1,6 +1,6 @@
-import * as vscode from 'vscode'
-import * as path from 'path'
 import { ChildProcessWithoutNullStreams } from 'child_process'
+import * as path from 'path'
+import * as vscode from 'vscode'
 import { WebSocketManager } from '@/services/websocket-manager'
 import {
   FrontendMessage,
@@ -39,6 +39,9 @@ import {
   handle_target_changed,
   handle_get_api_prompt_type,
   handle_save_api_prompt_type,
+  handle_get_cli_prompt_type,
+  handle_save_cli_prompt_type,
+  handle_invoke_agentic_cli,
   handle_get_target,
   handle_get_workspace_state,
   handle_get_version,
@@ -62,9 +65,8 @@ import {
   handle_get_tasks,
   handle_save_tasks,
   handle_delete_task,
-  handle_cancel_patch_repair_file_in_preview as handle_cancel_patch_repair_file_in_preview,
+  handle_cancel_patch_repair_file_in_preview,
   handle_open_file_and_select,
-  handle_open_external_url,
   handle_hash_sign_quick_pick,
   handle_save_prompt_image,
   handle_open_prompt_image,
@@ -75,21 +77,26 @@ import {
   handle_open_website,
   handle_create_api_configuration,
   handle_delete_api_configuration,
-  handle_update_last_used_web_configuration,
   handle_request_return_home,
   handle_pick_tasks_workspace,
   handle_preview_prompt,
   handle_install_browser_extension,
   handle_preview_changes_symbol,
   handle_preview_commit_symbol,
-  handle_preview_skill_symbol
+  handle_preview_skill_symbol,
+  handle_update_api_configuration,
+  handle_pick_provider,
+  handle_pick_api_model,
+  handle_create_cli_configuration,
+  handle_delete_cli_configuration,
+  handle_reorder_cli_configurations,
+  handle_toggle_pinned_cli_configuration,
+  handle_update_cli_configuration,
+  handle_pick_api_reasoning_effort,
+  handle_select_edit_format_instructions,
+  handle_update_last_used_web_configuration
 } from './message-handlers'
-import { handle_agentic_search } from './message-handlers/handle-agentic-search/handle-agentic-search'
-import { handle_update_api_configuration } from './message-handlers/handle-update-api-configuration'
-import { handle_pick_provider } from './message-handlers/handle-pick-provider'
-import { handle_pick_api_model } from './message-handlers/handle-pick-api-model'
-import { handle_pick_api_reasoning_effort } from './message-handlers/handle-pick-api-reasoning-effort'
-import { handle_select_edit_format_instructions } from './message-handlers/handle-select-edit-format-instructions'
+import { handle_agentic_search } from './message-handlers/handle-agentic-search'
 import { SelectionState } from '../types/messages'
 import {
   EDIT_FORMAT_STATE_KEY,
@@ -98,17 +105,28 @@ import {
   INSTRUCTIONS_EDIT_FILES_STATE_KEY,
   PROMPT_VIEW_TARGET_STATE_KEY,
   WEB_TARGET_STATE_KEY,
+  CLI_TARGET_STATE_KEY,
   LAST_USED_EDIT_FILES_CONFIG_ID_STATE_KEY,
-  get_last_used_web_configuration_key
+  get_last_used_web_configuration_key,
+  get_last_used_cli_configuration_key
 } from '@/constants/state-keys'
 import {
   config_web_configuration_to_ui_format,
   ConfigWebConfigurationFormat
 } from '@/utils/web-configuration-format-converters'
+import {
+  config_cli_configuration_to_ui_format,
+  ConfigAgentConfigurationFormat
+} from '@/utils/cli-configuration-format-converters'
 import { CHATBOTS } from '@shared/constants/chatbots'
-import { TARGET, Target } from '@shared/types/mode'
-import { ApiPromptType, WebPromptType } from '@shared/types/prompt-types'
+import { Target } from '@shared/types/target'
+import {
+  ApiPromptType,
+  WebPromptType,
+  CliPromptType
+} from '@shared/types/prompt-types'
 import { Logger } from '@shared/utils/logger'
+import { get_error_message } from '@/utils/get-error-message'
 import { ResponseHistoryItem } from '@shared/types/response-history-item'
 import { ProvidersManager } from '@/services/providers-manager'
 import { SharedContextState } from '@/context/shared-context-state'
@@ -118,6 +136,7 @@ import { normalize_path } from '@/utils/normalize-path'
 import { open_settings } from '@/views/settings/helpers/open-settings'
 import { replace_symbols } from './utils/symbols/replace-symbols'
 import { SymbolCacheManager } from './utils/symbols/symbol-cache'
+import { AgenticSearchState } from '@/features/agentic-search'
 import { t } from '@/i18n'
 
 export class PromptViewProvider implements vscode.WebviewViewProvider {
@@ -143,7 +162,8 @@ export class PromptViewProvider implements vscode.WebviewViewProvider {
   public web_prompt_type: WebPromptType
   public edit_format: EditFormat
   public api_prompt_type: ApiPromptType
-  public target: Target = TARGET.WEB
+  public cli_prompt_type: CliPromptType
+  public target: Target = 'WEB'
   public patch_repair_abort_controllers: {
     controller: AbortController
     file_path: string
@@ -155,6 +175,7 @@ export class PromptViewProvider implements vscode.WebviewViewProvider {
   public response_history: ResponseHistoryItem[] = []
   public message_listeners: ((message: BackendMessage) => void)[] = []
   public symbols_cache = new SymbolCacheManager()
+  public agentic_search_state: AgenticSearchState
 
   // Voice input
   public is_recording = false
@@ -178,10 +199,12 @@ export class PromptViewProvider implements vscode.WebviewViewProvider {
     )
   }
 
-  public get prompt_type(): WebPromptType | ApiPromptType {
-    return this.target == TARGET.WEB
+  public get prompt_type(): WebPromptType | ApiPromptType | CliPromptType {
+    return this.target == 'WEB'
       ? this.web_prompt_type
-      : this.api_prompt_type
+      : this.target == 'API'
+        ? this.api_prompt_type
+        : this.cli_prompt_type
   }
 
   public get active_instructions_state(): InstructionsState {
@@ -266,6 +289,7 @@ export class PromptViewProvider implements vscode.WebviewViewProvider {
     extension_context: vscode.ExtensionContext
     websocket_server_instance: WebSocketManager
     shared_context_state: SharedContextState
+    agentic_search_state: AgenticSearchState
   }) {
     this.extension_uri = params.extension_uri
     this.workspace_provider = params.workspace_provider
@@ -273,6 +297,7 @@ export class PromptViewProvider implements vscode.WebviewViewProvider {
     this.extension_context = params.extension_context
     this.websocket_server_instance = params.websocket_server_instance
     this.shared_context_state = params.shared_context_state
+    this.agentic_search_state = params.agentic_search_state
 
     this.websocket_server_instance.on_connection_status_change((connected) => {
       if (this.webview_view) {
@@ -306,7 +331,7 @@ export class PromptViewProvider implements vscode.WebviewViewProvider {
       this.extension_context.globalState.get<Target>(
         PROMPT_VIEW_TARGET_STATE_KEY
       ) ??
-      TARGET.WEB
+      'WEB'
 
     this.web_prompt_type =
       this.extension_context.workspaceState.get<WebPromptType>(
@@ -316,6 +341,11 @@ export class PromptViewProvider implements vscode.WebviewViewProvider {
     this.api_prompt_type =
       this.extension_context.workspaceState.get<ApiPromptType>(
         API_TARGET_STATE_KEY,
+        'edit-files'
+      )
+    this.cli_prompt_type =
+      this.extension_context.workspaceState.get<CliPromptType>(
+        CLI_TARGET_STATE_KEY,
         'edit-files'
       )
 
@@ -373,6 +403,12 @@ export class PromptViewProvider implements vscode.WebviewViewProvider {
 
         if (event.affectsConfiguration('workbench.experimental.modernUI')) {
           this._send_is_modern_ui()
+        }
+
+        if (event.affectsConfiguration('codeWebChat.agents')) {
+          if (this.webview_view) {
+            this.send_cli_configurations_to_webview(this.webview_view.webview)
+          }
         }
       }
     )
@@ -700,6 +736,12 @@ export class PromptViewProvider implements vscode.WebviewViewProvider {
             handle_get_api_prompt_type(this)
           } else if (message.command == 'SAVE_API_PROMPT_TYPE') {
             await handle_save_api_prompt_type(this, message.prompt_type)
+          } else if (message.command == 'GET_CLI_PROMPT_TYPE') {
+            handle_get_cli_prompt_type(this)
+          } else if (message.command == 'SAVE_CLI_PROMPT_TYPE') {
+            await handle_save_cli_prompt_type(this, message.prompt_type)
+          } else if (message.command == 'INVOKE_AGENTIC_CLI') {
+            await handle_invoke_agentic_cli(this, message as any)
           } else if (message.command == 'GET_EDIT_FORMAT_INSTRUCTIONS') {
             handle_get_edit_format_instructions(this)
           } else if (message.command == 'GET_EDIT_FORMAT') {
@@ -782,8 +824,6 @@ export class PromptViewProvider implements vscode.WebviewViewProvider {
             await handle_preview_generated_code(message)
           } else if (message.command == 'UPDATE_FILE_PROGRESS') {
             // Handle the message internally instead of invoking a command
-          } else if (message.command == 'OPEN_EXTERNAL_URL') {
-            await handle_open_external_url(message)
           } else if (message.command == 'CREATE_API_CONFIGURATION') {
             await handle_create_api_configuration(this, message)
           } else if (message.command == 'UPDATE_API_CONFIGURATION') {
@@ -846,6 +886,18 @@ export class PromptViewProvider implements vscode.WebviewViewProvider {
             await handle_preview_skill_symbol(message)
           } else if (message.command == 'AGENTIC_SEARCH') {
             await handle_agentic_search(this)
+          } else if (message.command == 'GET_CLI_CONFIGURATIONS') {
+            this.send_cli_configurations_to_webview(webview_view.webview)
+          } else if (message.command == 'CREATE_CLI_CONFIGURATION') {
+            await handle_create_cli_configuration(this, message)
+          } else if (message.command == 'UPDATE_CLI_CONFIGURATION') {
+            await handle_update_cli_configuration(this, message)
+          } else if (message.command == 'DELETE_CLI_CONFIGURATION') {
+            await handle_delete_cli_configuration(message)
+          } else if (message.command == 'REORDER_CLI_CONFIGURATIONS') {
+            await handle_reorder_cli_configurations(message)
+          } else if (message.command == 'TOGGLE_PINNED_CLI_CONFIGURATION') {
+            await handle_toggle_pinned_cli_configuration(message)
           }
         } catch (error) {
           Logger.error({
@@ -855,12 +907,46 @@ export class PromptViewProvider implements vscode.WebviewViewProvider {
           })
           vscode.window.showErrorMessage(
             t('common.error.error-handling-message', {
-              message: error instanceof Error ? error.message : String(error)
+              message: get_error_message(error)
             })
           )
         }
       }
     )
+  }
+
+  public send_cli_configurations_to_webview(_: vscode.Webview) {
+    const config = vscode.workspace.getConfiguration('codeWebChat')
+
+    const cli_configurations_config =
+      config.get<ConfigAgentConfigurationFormat[]>('agents', []) || []
+    const cli_configurations_ui = cli_configurations_config.map(
+      config_cli_configuration_to_ui_format
+    )
+
+    const cli_prompt_types: CliPromptType[] = ['ask-about-files', 'edit-files']
+
+    this.send_message({
+      command: 'CLI_CONFIGURATIONS',
+      cli_configurations: cli_configurations_ui,
+      selected_cli_configuration_name_by_mode: Object.fromEntries(
+        cli_prompt_types.map((prompt_type) => {
+          let selected_name: string | undefined = undefined
+          const key = get_last_used_cli_configuration_key(prompt_type)
+          const last_selected =
+            this.extension_context.workspaceState.get<string>(key) ??
+            this.extension_context.globalState.get<string>(key)
+          if (last_selected) {
+            if (
+              cli_configurations_ui.some((p) => p.name == last_selected)
+            ) {
+              selected_name = last_selected
+            }
+          }
+          return [prompt_type, selected_name]
+        })
+      )
+    })
   }
 
   public send_web_configurations_to_webview(_: vscode.Webview) {

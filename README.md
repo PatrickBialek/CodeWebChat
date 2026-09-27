@@ -11,9 +11,9 @@
   <a href="https://marketplace.visualstudio.com/items?itemName=robertpiosik.gemini-coder"><img src="https://img.shields.io/badge/Install-VS_Code_Marketplace-blue" alt="Get from Visual Studio Code Marketplace" /></a> <a href="https://open-vsx.org/extension/robertpiosik/gemini-coder"><img src="https://img.shields.io/badge/Install-Open_VSX_Registry-a60ee5" alt="Get from Open VSX Registry" /></a> 
 </p>
 
-<p align="center"><strong>AI coding with static context</strong></p>
+<p align="center"><strong>Blazing fast AI coding for VS Code</strong></p>
 
-<p align="center"><i>free and privacy-first</br>built independently</i></p>
+<p align="center"><i>chatbots, APIs, CLIs</br>free and privacy-first</i></p>
 
 <p align="center"><img src="https://github.com/robertpiosik/CodeWebChat/raw/HEAD/media/screenshot-1.png"></p>
 
@@ -23,38 +23,41 @@
 
 ## Introduction
 
-**CWC** is a sessionless workflow that is 10X faster at 1/10th the cost of coding with agents alone.
+**CWC** constructs [markdown-formatted prompts](#prompts) in a fast, sessionless workflow.
 
 #### The workflow
 
-1. Type instructions
-2. Run [Agentic Search](#-agentic-search) for task-relevant file selection
-3. Select examples for model guidance
-4. Send prompt with a chatbot or an API call
-5. Apply response
+1. Select task-relevant files with the help of [Agentic Search](#-agentic-search).
+2. Select examples for model guidance.
+3. Send prompts with chatbots, api calls or coding agents.
 
 #### Efficiency and speed
 
-- For [Agentic Search](#-agentic-search), SOTA models offer diminishing returns over cheap mid-tiers.
-- Given lean, bloat-free prompts, models 'think' less and stay at their baseline accuracy.
+- Without sessions, there is no context accumulation;
+  - token spend never skyrocket,
+  - models _think_ less.
+
+## Send prompts with...
+
+### 👉 Chatbots
+
+Copy & paste into chatbots or autofill via [browser extension](https://github.com/robertpiosik/CodeWebChat/tree/dev/apps/browser).
+
+### 👉 API requests
+
+Call OpenAI-API-compatible model providers.
+
+### 👉 Agents
+
+Run your favorite coding agent.
 
 ## Prompts
 
-**CWC** helps construct prompts for common day-to-day coding tasks.
+Overview of CWC-constructed prompts.
 
 ### 📄 Agentic search
 
-_Task-relevant files from your favorite coding agent, utilizing its one-off prompt (headless) mode._
-
-#### Supported CLIs
-
-- Antigravity
-- Claude Code
-- Codex
-- Cursor
-- Grok Build
-- Muse Code
-- OpenCode
+_Find task-relevant files through automated codebase discovery._
 
 <details>
 <summary>AGENT</summary>
@@ -85,7 +88,7 @@ _A quick way for task-relevant files from a single message._
 ```
 # Files
 
-[WORKSPACE FILES/SPECIFIC FOLDER/SELECTED FILES]
+[WORKSPACE FILES, A FOLDER OR SELECTED FILES]
 
 # Task
 
@@ -97,9 +100,9 @@ Your response must begin with "**Intelligent file search results:**", then a bul
 
 **Intelligent file search results:**
 
-* `src/index.ts`
-* `src/greetings/hello.ts`
-* `src/greetings/welcome.ts`
+- `src/index.ts`
+- `src/greetings/hello.ts`
+- `src/greetings/welcome.ts`
 
 These files contain the core greeting logic and module exports.
 
@@ -116,7 +119,7 @@ These files contain the core greeting logic and module exports.
 ```
 # Files
 
-[WORKSPACE FILES/SPECIFIC FOLDER/SELECTED FILES]
+[WORKSPACE FILES, A FOLDER OR SELECTED FILES]
 
 # Task
 
@@ -126,9 +129,9 @@ Among the attached files, find the complete set of primary and structural files 
 
 Output strictly as a bulleted list of file paths without explanations or any other text. Example:
 
-* `src/index.ts`
-* `src/greetings/hello.ts`
-* `src/greetings/welcome.ts`
+- `src/index.ts`
+- `src/greetings/hello.ts`
+- `src/greetings/welcome.ts`
 
 # Query
 
@@ -162,6 +165,27 @@ Whenever showing a new, updated, renamed, or deleted file, provide a brief expla
 
 </details>
 
+<details>
+<summary>AGENT</summary>
+
+```
+# Files
+
+[SELECTED FILES]
+
+# Requirements
+
+- Begin by looking at [files](#files) section for referenced files (### File: `[PROJECT-RELATIVE PATH]`) and read them one-by-one.
+- If [task](#task) section includes *.png image paths, read them.
+- Any further tool calling (including commands like grep, ls, git, etc.) is FORBIDDEN, with exceptions: explicit file CREATIONS, DELETIONS or UPDATES to complete the [task](#task).
+
+# Task
+
+[INSTRUCTIONS]
+```
+
+</details>
+
 ### 📄 Asking
 
 _Multi-purpose: explanations, code reviews, you name it._
@@ -173,6 +197,27 @@ _Multi-purpose: explanations, code reviews, you name it._
 # Files
 
 [SELECTED FILES]
+
+# Task
+
+[INSTRUCTIONS]
+```
+
+</details>
+
+<details>
+<summary>AGENT</summary>
+
+```
+# Files
+
+[SELECTED FILES]
+
+# Requirements
+
+- Begin by looking at [files](#files) section for referenced files (### File: `[PROJECT-RELATIVE PATH]`) and read them one-by-one.
+- If [task](#task) section includes *.png image paths, read them.
+- Any further tool calling (including commands like grep, ls, git, etc.) is FORBIDDEN, with exceptions: explicit file CREATIONS, DELETIONS or UPDATES to complete the [task](#task).
 
 # Task
 
@@ -263,7 +308,7 @@ Write a brief and precise summary for the changes, limited to a single sentence.
 
 ### 📄 Patch repair
 
-_Applying malformed edits._
+_Applying malformed edits generated by chatbots and APIs._
 
 <details>
 <summary>WEB/API</summary>
@@ -286,49 +331,6 @@ Apply the attached changes to the file without explanations or any other text.
 
 </details>
 
-## Enabling autofill
-
-Automatically place prompts in your favorite chatbot via the official browser extension ([source code](https://github.com/robertpiosik/CodeWebChat/tree/dev/apps/browser)).
-
-- [Chrome Web Store](https://chromewebstore.google.com/detail/autofill-for-code-web-chat/ljookipcanaglfaocjbgdicfbdhhjffp)
-- [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/autofill-for-code-web-chat/)
-
-> [!TIP]
-> Elevate your workflow with smart workspaces (called [projects](https://help.openai.com/en/articles/10169521-projects-in-chatgpt), [gems](https://gemini.google/pl/overview/gems), or [spaces](https://docs.github.com/en/copilot/concepts/context/spaces)).
-
-#### Supported chatbots
-
-- AI Studio
-- Arena
-- ChatGPT
-- Claude
-- Copilot
-- DeepSeek
-- Doubao
-- Gemini
-- GitHub Copilot
-- Grok
-- HuggingChat
-- Kimi
-- Meta
-- Mistral
-- Open WebUI
-- OpenRouter
-- Qwen
-- Together
-- Yuanbao
-- Z
-
-> [!IMPORTANT]
-> The _Apply response_ button placed under responses is not a means of automatic output extraction, it's an alias for the original _copy to clipboard_ button. Review the [content script](https://github.com/robertpiosik/CodeWebChat/blob/dev/apps/browser/src/content-scripts/send-prompt-content-script/send-prompt-content-script.ts) to learn about implementation details.
-
-> [!NOTE]
-> Use [forwarding](https://code.visualstudio.com/docs/debugtest/port-forwarding) of port _55155_ when using remote machine via SSH.
-
-## Prompt caching
-
-**CWC** orders context files by modification and selection recency. This, combined with instructions placement at the message's very end effecively utilizes prompt caching, across related tasks.
-
 ## Commands
 
 ### Code at Cursor
@@ -343,8 +345,9 @@ Automatically place prompts in your favorite chatbot via the official browser ex
 - `Save File Selection` - Save the current context.
 - `Restore File Selection` - Restore a saved context.
 - `Select Workspace File...` - Select a file from the workspace.
-- `Search Files...` - Select files based on a search query.
-- `Search in Selected Files...` - Search within currently selected files.
+- `Search Files...` - Find files based on a search query.
+- `Search in Selected Files...` - Find within currently selected files.
+- `Agentic Search...` - Find task-relevant files using a headless CLI invocation.
 - `Select Clipboard Paths...` - Select files based on paths in your clipboard.
 - `Select Unstaged Files...` - Select files with unstaged changes.
 - `Select Files of Commit...` - Select files modified in a specific commit.

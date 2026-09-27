@@ -4,7 +4,6 @@ import { Button as UiButton } from '@ui/components/editor/common/Button'
 import { Page as UiPage } from '@ui/components/editor/prompt/Page'
 import { EditWebConfigurationForm } from '@/views/shared/forms/EditWebConfigurationForm'
 import { TextButton as UiTextButton } from '@ui/components/editor/common/TextButton'
-import { TARGET } from '@shared/types/mode'
 import { Home } from './Home'
 import styles from './Prompt.module.scss'
 import cn from 'classnames'
@@ -29,6 +28,8 @@ import { use_editor_sync } from './hooks/use-editor-sync'
 import { use_web_configuration_editing } from './hooks/use-web-configuration-editing'
 import { use_api_configuration_editing } from './hooks/use-api-configuration-editing'
 import { EditApiConfigurationForm } from '@/views/shared/forms/EditApiConfigurationForm'
+import { use_cli_configuration_editing } from './hooks/use-cli-configuration-editing'
+import { EditCliConfigurationForm } from '@/views/shared/forms/EditCliConfigurationForm/EditCliConfigurationForm'
 import { use_translation } from './i18n/use-translation'
 
 const vscode = acquireVsCodeApi()
@@ -48,6 +49,7 @@ export const Prompt = () => {
     target,
     web_prompt_type,
     api_prompt_type,
+    cli_prompt_type,
     chat_input_focus_key,
     set_chat_input_focus_key,
     chat_input_focus_and_select_key,
@@ -56,6 +58,7 @@ export const Prompt = () => {
     handle_instructions_change,
     handle_web_prompt_type_change,
     handle_api_prompt_type_change,
+    handle_cli_prompt_type_change,
     handle_target_change,
     handle_paste_image,
     handle_open_image,
@@ -131,6 +134,16 @@ export const Prompt = () => {
   } = use_api_configuration_editing(vscode)
 
   const {
+    updating_cli_configuration,
+    set_updating_cli_configuration,
+    set_updated_cli_configuration,
+    edit_cli_configuration_back_click_handler,
+    edit_cli_configuration_save_handler,
+    set_is_new_cli_configuration,
+    set_cli_configuration_insertion_index
+  } = use_cli_configuration_editing(vscode)
+
+  const {
     progress_state,
     set_progress_state,
     auto_closing_modal_data,
@@ -155,6 +168,7 @@ export const Prompt = () => {
     web_prompt_type === undefined ||
     is_connected === undefined ||
     api_prompt_type === undefined ||
+    cli_prompt_type === undefined ||
     current_selection === undefined ||
     workspace_folder_count === undefined
   ) {
@@ -174,7 +188,12 @@ export const Prompt = () => {
   }
 
   const get_current_instructions_state = () => {
-    const prompt_type = target == TARGET.WEB ? web_prompt_type : api_prompt_type
+    const prompt_type =
+      target == 'WEB'
+        ? web_prompt_type
+        : target == 'API'
+          ? api_prompt_type
+          : cli_prompt_type
     if (prompt_type == 'ask-about-files') return ask_about_context_instructions
     if (prompt_type == 'edit-files') return edit_files_instructions
     return undefined
@@ -224,13 +243,6 @@ export const Prompt = () => {
     })
   }
 
-  const handle_open_url = (url: string) => {
-    post_message(vscode, {
-      command: 'OPEN_EXTERNAL_URL',
-      url
-    })
-  }
-
   const handle_open_website = (url: string) => {
     post_message(vscode, {
       command: 'OPEN_WEBSITE',
@@ -246,15 +258,11 @@ export const Prompt = () => {
   }
 
   const current_state = get_current_instructions_state()
-  const are_keyboard_shortcuts_disabled =
-    !!updating_web_configuration ||
-    !!updating_api_configuration ||
-    !!items_in_preview ||
-    active_view != 'main'
 
   const is_main_slot_hidden =
     !!updating_web_configuration ||
     !!updating_api_configuration ||
+    !!updating_cli_configuration ||
     viewing_donations ||
     !!items_in_preview
 
@@ -277,7 +285,11 @@ export const Prompt = () => {
                 set_api_configurations={set_api_configurations}
                 scroll_reset_key={main_view_scroll_reset_key}
                 are_keyboard_shortcuts_disabled={
-                  are_keyboard_shortcuts_disabled
+                  !!updating_web_configuration ||
+                  !!updating_api_configuration ||
+                  !!updating_cli_configuration ||
+                  !!items_in_preview ||
+                  active_view == 'home'
                 }
                 vscode={vscode}
                 on_web_configuration_edit={(web_configuration) => {
@@ -295,6 +307,12 @@ export const Prompt = () => {
                   set_updated_api_configuration(api_configuration)
                   set_is_new_api_configuration(false)
                   set_api_configuration_insertion_index(undefined)
+                }}
+                on_cli_configuration_edit={(cli_configuration) => {
+                  set_updating_cli_configuration(cli_configuration)
+                  set_updated_cli_configuration(cli_configuration)
+                  set_is_new_cli_configuration(false)
+                  set_cli_configuration_insertion_index(undefined)
                 }}
                 is_connected={is_connected}
                 on_show_home={() => {
@@ -314,6 +332,7 @@ export const Prompt = () => {
                 target={target}
                 web_prompt_type={web_prompt_type}
                 api_prompt_type={api_prompt_type}
+                cli_prompt_type={cli_prompt_type}
                 on_target_change={(new_target) =>
                   handle_target_change(new_target, true)
                 }
@@ -321,6 +340,7 @@ export const Prompt = () => {
                 current_selection={current_selection}
                 on_web_prompt_type_change={handle_web_prompt_type_change}
                 on_api_prompt_type_change={handle_api_prompt_type_change}
+                on_cli_prompt_type_change={handle_cli_prompt_type_change}
                 response_history={response_history}
                 on_response_history_item_click={
                   handle_response_history_item_click
@@ -342,7 +362,6 @@ export const Prompt = () => {
                 send_with_shift_enter={send_with_shift_enter}
                 on_pasted_lines_click={handle_pasted_lines_click}
                 currently_open_file_text={currently_open_file_text}
-                on_open_url={handle_open_url}
                 on_open_website={handle_open_website}
                 on_paste_image={handle_paste_image}
                 on_open_image={handle_open_image}
@@ -382,17 +401,23 @@ export const Prompt = () => {
                 is_connected={is_connected}
                 web_prompt_type={web_prompt_type}
                 api_prompt_type={api_prompt_type}
-                on_go_forward={() => set_active_view('main')}
+                cli_prompt_type={cli_prompt_type}
                 on_chatbots_click={() => {
                   set_active_view('main')
                   set_main_view_scroll_reset_key((k) => k + 1)
-                  handle_target_change(TARGET.WEB)
+                  handle_target_change('WEB')
                   set_chat_input_focus_key((k) => k + 1)
                 }}
                 on_api_calls_click={() => {
                   set_active_view('main')
                   set_main_view_scroll_reset_key((k) => k + 1)
-                  handle_target_change(TARGET.API)
+                  handle_target_change('API')
+                  set_chat_input_focus_key((k) => k + 1)
+                }}
+                on_cli_calls_click={() => {
+                  set_active_view('main')
+                  set_main_view_scroll_reset_key((k) => k + 1)
+                  handle_target_change('CLI')
                   set_chat_input_focus_key((k) => k + 1)
                 }}
                 version={version}
@@ -489,6 +514,30 @@ export const Prompt = () => {
                     model,
                     current_effort: current
                   })
+                }}
+              />
+            </UiPage>
+          </div>
+        )}
+
+        {updating_cli_configuration && (
+          <div className={styles.slot}>
+            <UiPage
+              on_back_click={edit_cli_configuration_back_click_handler}
+              footer_slot={
+                <div className={styles['edit-web-configuration-footer']}>
+                  <UiButton on_click={edit_cli_configuration_save_handler}>
+                    Save
+                  </UiButton>
+                </div>
+              }
+              title="Edit Agent"
+            >
+              <EditCliConfigurationForm
+                cli_configuration={updating_cli_configuration}
+                on_update={set_updated_cli_configuration}
+                pick_agent={(agent_id) => {
+                  post_message(vscode, { command: 'PICK_AGENT', agent_id })
                 }}
               />
             </UiPage>

@@ -13,6 +13,9 @@ import { t } from '@/i18n'
 export const handle_copy_prompt = async (params: {
   prompt_view_provider: PromptViewProvider
 }): Promise<void> => {
+  let text = ''
+
+
   const {
     other_files,
     recent_files,
@@ -39,7 +42,7 @@ export const handle_copy_prompt = async (params: {
     }
   }
 
-  const { full_prompt: text } = PromptBuilder.build_prompt({
+  const build_result = PromptBuilder.build_prompt({
     other_files,
     recent_files,
     skill_definitions,
@@ -47,6 +50,7 @@ export const handle_copy_prompt = async (params: {
     user_instructions,
     separator: true
   })
+  text = build_result.full_prompt
 
   vscode.env.clipboard.writeText(text.trim())
 

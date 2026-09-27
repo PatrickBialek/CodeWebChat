@@ -10,11 +10,13 @@ import {
   Provider,
   Template
 } from '@/views/settings/types/messages'
-import { WebConfiguration } from '@shared/types/web-configuration'
+import { WebConfiguration } from '@/types/web-configuration'
+import { CliConfiguration } from '@/types/cli-configuration'
 import { GeneralSection } from './sections/GeneralSection'
 import { ApiFeature } from '@/views/shared/types/api-features'
 import { use_translation, TranslationKey } from '../i18n/use-translation'
 import { WebSection } from './sections/WebSection'
+import { CliSection } from './sections/CliSection'
 export type NavItem =
   | 'section:general'
   | 'section:general:group:open-links'
@@ -27,6 +29,9 @@ export type NavItem =
   | 'section:api:group:models'
   | 'section:api:group:api-defaults'
   | 'section:api:group:system-instructions'
+  | 'section:cli'
+  | 'section:cli:group:agents'
+  | 'section:cli:group:agent-defaults'
 
 export type NavConfigItem = { id: NavItem; label: TranslationKey }
 
@@ -74,6 +79,18 @@ export const NAV_ITEMS_CONFIG: NavConfigItem[] = [
   {
     id: 'section:api:group:system-instructions',
     label: 'api.system-instructions.title'
+  },
+  {
+    id: 'section:cli',
+    label: 'cli.title'
+  },
+  {
+    id: 'section:cli:group:agents',
+    label: 'agents.configurations.title'
+  },
+  {
+    id: 'section:cli:group:agent-defaults',
+    label: 'cli.default-configurations.title'
   }
 ]
 
@@ -81,6 +98,7 @@ type Props = {
   providers: Provider[]
   api_configurations: ApiConfiguration[]
   web_configurations: WebConfiguration[]
+  cli_configurations: CliConfiguration[]
   defaults: Record<ApiFeature, string | null>
   edit_files_system_instructions: string
   default_edit_files_system_instructions: string
@@ -103,6 +121,18 @@ type Props = {
   set_providers: (providers: Provider[]) => void
   set_api_configurations: (configurations: ApiConfiguration[]) => void
   set_web_configurations: (configurations: WebConfiguration[]) => void
+  set_cli_configurations: (configurations: CliConfiguration[]) => void
+  on_reorder_cli_configurations: (reordered: CliConfiguration[]) => void
+  on_add_cli_configuration: (params?: {
+    insertion_index?: number
+    exact_insertion?: boolean
+  }) => void
+  on_edit_cli_configuration: (id: string) => void
+  on_delete_cli_configuration: (name: string) => void
+  on_toggle_pinned_cli_configuration: (config: CliConfiguration) => void
+  agent_defaults: Record<string, string | null>
+  on_set_default_cli_configuration: (cli_feature: string, name: string | null) => void
+  on_select_default_cli_configuration: (cli_feature: string) => void
   on_commit_instructions_change: (instructions: string) => void
   on_attach_ascii_tree_of_context_change: (
     value: 'ask' | 'always' | 'never'
@@ -149,7 +179,6 @@ type Props = {
   on_edit_web_configuration: (id: string) => void
   on_delete_web_configuration: (name: string) => void
   on_toggle_pinned_web_configuration: (config: WebConfiguration) => void
-  on_open_external_url: (url: string) => void
   scroll_to_section_on_load?: NavItem
 }
 
@@ -302,7 +331,6 @@ export const Home: React.FC<Props> = (props) => {
               props.default_commit_message_instructions
             )
           }}
-          on_open_external_url={props.on_open_external_url}
           templates={props.templates}
           on_update_templates={props.on_update_templates}
           on_edit_template={props.on_edit_template}
@@ -337,7 +365,6 @@ export const Home: React.FC<Props> = (props) => {
           on_delete_provider={props.on_delete_provider}
           on_edit_provider={props.on_edit_provider}
           on_reorder_providers={props.on_reorder_providers}
-          on_open_external_url={props.on_open_external_url}
           api_configurations={props.api_configurations}
           defaults={props.defaults}
           set_api_configurations={props.set_api_configurations}
@@ -381,6 +408,23 @@ export const Home: React.FC<Props> = (props) => {
               props.default_edit_files_system_instructions
             )
           }}
+        />
+
+        <CliSection
+          ref={(el) => set_section_ref('section:cli', el)}
+          set_section_ref={set_section_ref}
+          cli_configurations={props.cli_configurations}
+          set_cli_configurations={props.set_cli_configurations}
+          on_reorder_cli_configurations={props.on_reorder_cli_configurations}
+          on_add_cli_configuration={props.on_add_cli_configuration}
+          on_edit_cli_configuration={props.on_edit_cli_configuration}
+          on_delete_cli_configuration={props.on_delete_cli_configuration}
+          on_toggle_pinned_cli_configuration={
+            props.on_toggle_pinned_cli_configuration
+          }
+          agent_defaults={props.agent_defaults}
+          on_set_default_cli_configuration={props.on_set_default_cli_configuration}
+          on_select_default_cli_configuration={props.on_select_default_cli_configuration}
         />
       </UiLayout>
     </div>

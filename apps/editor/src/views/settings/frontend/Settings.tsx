@@ -4,6 +4,8 @@ import { post_message } from './utils/post-message'
 import { BackendMessage, Template } from '../types/messages'
 import { Home, NavItem } from './Home/Home'
 import { use_web_configuration_editing } from './hooks/use-web-configuration-editing'
+import { use_cli_configuration_editing } from './hooks/use-cli-configuration-editing'
+import { EditCliConfigurationForm } from '@/views/shared/forms/EditCliConfigurationForm/EditCliConfigurationForm'
 import { use_api_configuration_editing } from './hooks/use-api-configuration-editing'
 import { use_provider_editing } from './hooks/use-provider-editing'
 import { Modal as UiModal } from '@ui/components/editor/settings/Modal'
@@ -25,6 +27,16 @@ export const Settings = () => {
     set_is_new_web_configuration,
     set_web_configuration_insertion_index
   } = use_web_configuration_editing(vscode)
+
+  const {
+    updating_cli_configuration,
+    set_updating_cli_configuration,
+    set_updated_cli_configuration,
+    edit_cli_configuration_cancel_handler,
+    edit_cli_configuration_save_handler,
+    set_is_new_cli_configuration,
+    set_cli_configuration_insertion_index
+  } = use_cli_configuration_editing(vscode)
 
   const {
     updating_api_configuration,
@@ -85,6 +97,8 @@ export const Settings = () => {
       settings_hook.providers !== undefined &&
       settings_hook.api_configurations !== undefined &&
       settings_hook.web_configurations !== undefined &&
+      settings_hook.cli_configurations !== undefined &&
+      settings_hook.agent_defaults !== undefined &&
       settings_hook.defaults !== undefined &&
       settings_hook.edit_files_system_instructions !== undefined &&
       settings_hook.default_edit_files_system_instructions !== undefined &&
@@ -239,7 +253,7 @@ export const Settings = () => {
         on_add_web_configuration={settings_hook.handle_add_web_configuration}
         on_edit_web_configuration={(id) => {
           const config = settings_hook.web_configurations?.find(
-            (c, index) => (c.name ?? `unnamed-${index}`) === id
+            (c) => c.name == id
           )
           if (config) {
             set_updating_web_configuration(config)
@@ -253,7 +267,42 @@ export const Settings = () => {
         on_toggle_pinned_web_configuration={
           settings_hook.handle_toggle_pinned_web_configuration
         }
-        on_open_external_url={settings_hook.handle_open_external_url}
+        cli_configurations={settings_hook.cli_configurations!}
+        set_cli_configurations={settings_hook.set_cli_configurations}
+        on_reorder_cli_configurations={
+          settings_hook.handle_reorder_cli_configurations
+        }
+        on_add_cli_configuration={settings_hook.handle_add_cli_configuration}
+        on_edit_cli_configuration={(id) => {
+          const config = settings_hook.cli_configurations?.find(
+            (c) => c.name === id
+          )
+          if (config) {
+            set_updating_cli_configuration(config)
+            set_is_new_cli_configuration(false)
+            set_cli_configuration_insertion_index(undefined)
+          }
+        }}
+        on_delete_cli_configuration={
+          settings_hook.handle_delete_cli_configuration
+        }
+        on_toggle_pinned_cli_configuration={
+          settings_hook.handle_toggle_pinned_cli_configuration
+        }
+        agent_defaults={settings_hook.agent_defaults!}
+        on_set_default_cli_configuration={(cli_feature, name) => {
+          post_message(vscode, {
+            command: 'SET_DEFAULT_CLI_CONFIGURATION',
+            cli_feature,
+            cli_configuration_name: name
+          })
+        }}
+        on_select_default_cli_configuration={(cli_feature) => {
+          post_message(vscode, {
+            command: 'SELECT_DEFAULT_CLI_CONFIGURATION',
+            cli_feature
+          })
+        }}
         scroll_to_section_on_load={scroll_to_section_on_load}
       />
       {updating_web_configuration && (
@@ -282,6 +331,23 @@ export const Settings = () => {
                   supported_efforts,
                   current_effort
                 })
+              }}
+            />
+          </UiModal.Form>
+        </UiModal>
+      )}
+      {updating_cli_configuration && (
+        <UiModal on_close={edit_cli_configuration_cancel_handler}>
+          <UiModal.Form
+            title="Edit Agent"
+            on_save={edit_cli_configuration_save_handler}
+            on_cancel={edit_cli_configuration_cancel_handler}
+          >
+            <EditCliConfigurationForm
+              cli_configuration={updating_cli_configuration}
+              on_update={set_updated_cli_configuration}
+              pick_agent={(agent_id) => {
+                post_message(vscode, { command: 'PICK_AGENT', agent_id })
               }}
             />
           </UiModal.Form>
@@ -332,7 +398,6 @@ export const Settings = () => {
             <EditProviderForm
               provider={updating_provider.provider}
               on_update={set_updated_provider}
-              on_open_external_url={settings_hook.handle_open_external_url}
             />
           </UiModal.Form>
         </UiModal>

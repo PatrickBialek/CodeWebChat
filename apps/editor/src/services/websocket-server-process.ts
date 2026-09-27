@@ -76,12 +76,19 @@ class WebSocketServer {
     const url = new URL(request.url || '', `http://localhost:${DEFAULT_PORT}`)
     const token = url.searchParams.get('token')
 
-    if (token != SECURITY_TOKENS.BROWSERS && token != SECURITY_TOKENS.VSCODE) {
+    if (
+      token != SECURITY_TOKENS.BROWSER &&
+      token != SECURITY_TOKENS.EDITOR &&
+      token != SECURITY_TOKENS.LEGACY_BROWSER &&
+      token != SECURITY_TOKENS.LEGACY_EDITOR
+    ) {
       ws.close(1008, 'Invalid security token')
       return
     }
 
-    const is_browser_client = token == SECURITY_TOKENS.BROWSERS
+    const is_browser_client =
+      token == SECURITY_TOKENS.BROWSER ||
+      token == SECURITY_TOKENS.LEGACY_BROWSER
 
     if (is_browser_client) {
       this._handle_browser_connection(ws, url)

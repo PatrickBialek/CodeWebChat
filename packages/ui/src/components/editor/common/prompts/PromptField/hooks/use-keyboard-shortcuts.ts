@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import type { PromptFieldProps, EditFormat } from '../PromptField'
-import { TARGET } from '@shared/types/mode'
 
 export const use_keyboard_shortcuts = (props: PromptFieldProps) => {
   const [is_alt_pressed, set_is_alt_pressed] = useState(false)
@@ -28,6 +27,7 @@ export const use_keyboard_shortcuts = (props: PromptFieldProps) => {
 
   useEffect(() => {
     const handle_key_down = (e: KeyboardEvent) => {
+      if (props.are_keyboard_shortcuts_disabled) return
       if (e.code == 'AltLeft') {
         left_alt_pressed_ref.current = true
       }
@@ -40,13 +40,19 @@ export const use_keyboard_shortcuts = (props: PromptFieldProps) => {
         !e.ctrlKey &&
         !e.metaKey
       ) {
-        if (e.code == 'Escape') {
+        if (e.code == 'Digit1') {
           e.preventDefault()
-          if (props.on_target_change) {
-            props.on_target_change(
-              props.target == TARGET.WEB ? TARGET.API : TARGET.WEB
-            )
-          }
+          props.on_target_change?.('WEB')
+          return
+        }
+        if (e.code == 'Digit2') {
+          e.preventDefault()
+          props.on_target_change?.('API')
+          return
+        }
+        if (e.code == 'Digit3') {
+          e.preventDefault()
+          props.on_target_change?.('CLI')
           return
         }
 
@@ -125,12 +131,14 @@ export const use_keyboard_shortcuts = (props: PromptFieldProps) => {
   }, [
     props.show_edit_format_selector,
     props.on_edit_format_change,
-    props.edit_format
+    props.edit_format,
+    props.are_keyboard_shortcuts_disabled
   ])
 
   const handle_container_key_down = (
     e: React.KeyboardEvent<HTMLDivElement>
   ) => {
+    if (props.are_keyboard_shortcuts_disabled) return
     if (e.key == 'Escape' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       if (props.is_recording) {
         props.on_recording_finished()
@@ -144,11 +152,7 @@ export const use_keyboard_shortcuts = (props: PromptFieldProps) => {
       left_alt_pressed_ref.current &&
       (e.ctrlKey || e.metaKey)
     ) {
-      if (
-        !props.is_action_disabled &&
-        props.on_copy &&
-        props.target == TARGET.WEB
-      ) {
+      if (!props.is_action_disabled && props.on_copy && props.target == 'WEB') {
         e.stopPropagation()
         e.preventDefault()
         props.on_copy()

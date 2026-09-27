@@ -1,8 +1,8 @@
 {
   "name": "gemini-coder",
   "displayName": "Code Web Chat",
-  "description": "AI coding with static context (CWC)",
-  "version": "2026.922.167",
+  "description": "CWC makes AI coding blazing fast!",
+  "version": "2026.926.205",
   "scripts": {
     "build": "npx vsce package --no-dependencies",
     "vscode:prepublish": "rimraf out && npm run compile",
@@ -353,6 +353,11 @@
       {
         "command": "codeWebChat.searchSelectedFilesFromDirectory",
         "title": "%codeWebChat.searchSelectedFilesFromDirectory.title%",
+        "category": "Code Web Chat"
+      },
+      {
+        "command": "codeWebChat.agenticSearch",
+        "title": "%codeWebChat.agenticSearch.title%",
         "category": "Code Web Chat"
       },
       {
@@ -1002,59 +1007,48 @@
           "scope": "resource",
           "default": "In the project, find the complete set of primary and structural files relevant to the query."
         },
-        "codeWebChat.agenticSearchAntigravityFlags": {
-          "type": "array",
-          "scope": "resource",
-          "items": {
-            "type": "string"
-          }
-        },
-        "codeWebChat.agenticSearchClaudeFlags": {
-          "type": "array",
-          "scope": "resource",
-          "items": {
-            "type": "string"
-          }
-        },
-        "codeWebChat.agenticSearchCodexFlags": {
-          "type": "array",
-          "scope": "resource",
-          "items": {
-            "type": "string"
-          }
-        },
-        "codeWebChat.agenticSearchCursorFlags": {
-          "type": "array",
-          "scope": "resource",
-          "items": {
-            "type": "string"
-          }
-        },
-        "codeWebChat.agenticSearchGrokFlags": {
-          "type": "array",
-          "scope": "resource",
-          "items": {
-            "type": "string"
-          }
-        },
-        "codeWebChat.agenticSearchMuseFlags": {
-          "type": "array",
-          "scope": "resource",
-          "items": {
-            "type": "string"
-          }
-        },
-        "codeWebChat.agenticSearchOpencodeFlags": {
-          "type": "array",
-          "scope": "resource",
-          "items": {
-            "type": "string"
-          }
-        },
         "codeWebChat.editFilesSystemInstructions": {
           "type": "string",
           "scope": "resource",
           "default": "You're a helpful coding assistant."
+        },
+        "codeWebChat.agents": {
+          "type": "array",
+          "scope": "resource",
+          "default": [
+            {
+              "name": "(1)",
+              "agent": "Codex"
+            },
+            {
+              "name": "(2)",
+              "agent": "Claude Code"
+            }
+          ],
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "agent": {
+                "type": "string"
+              },
+              "flags": {
+                "type": "string"
+              },
+              "isPinned": {
+                "type": "boolean"
+              },
+              "isDefaultForAgenticSearch": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "name",
+              "agent"
+            ]
+          }
         },
         "codeWebChat.chatbots": {
           "type": "array",

@@ -1,5 +1,5 @@
-import * as vscode from 'vscode'
 import * as path from 'path'
+import * as vscode from 'vscode'
 import { PromptBuilder } from '../utils/prompt-builder'
 import { is_binary_file } from '../utils/is-binary'
 import { FilesCollector } from '../utils/files-collector'
@@ -7,6 +7,7 @@ import { WorkspaceProvider } from '../context/providers/workspace/workspace-prov
 import { OpenEditorsProvider } from '../context/providers/open-editors/open-editors-provider'
 import { t } from '../i18n'
 import { Logger } from '@shared/utils/logger'
+import { get_error_message } from '@/utils/get-error-message'
 
 export const copy_markdown_commands = (
   workspace_provider: WorkspaceProvider,
@@ -114,7 +115,7 @@ export const copy_markdown_commands = (
             vscode.window.showErrorMessage(
               t('command.copy-markdown-command.error.reading-file', {
                 filePath: file_path,
-                message: error instanceof Error ? error.message : String(error)
+                message: get_error_message(error)
               })
             )
           }

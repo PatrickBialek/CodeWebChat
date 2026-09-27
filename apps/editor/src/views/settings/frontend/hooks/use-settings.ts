@@ -7,7 +7,8 @@ import {
 } from '@/views/settings/types/messages'
 import { ApiFeature } from '@/views/shared/types/api-features'
 import { post_message } from '../utils/post-message'
-import { WebConfiguration } from '@shared/types/web-configuration'
+import { WebConfiguration } from '@/types/web-configuration'
+import { CliConfiguration } from '@/types/cli-configuration'
 
 export const use_settings = (vscode: any) => {
   const [providers, set_providers] = useState<Provider[] | undefined>(undefined)
@@ -16,6 +17,12 @@ export const use_settings = (vscode: any) => {
   >(undefined)
   const [web_configurations, set_web_configurations] = useState<
     WebConfiguration[] | undefined
+  >(undefined)
+  const [cli_configurations, set_cli_configurations] = useState<
+    CliConfiguration[] | undefined
+  >(undefined)
+  const [agent_defaults, set_agent_defaults] = useState<
+    Record<string, string | null> | undefined
   >(undefined)
   const [defaults, set_defaults] = useState<
     Record<ApiFeature, string | null> | undefined
@@ -62,6 +69,7 @@ export const use_settings = (vscode: any) => {
     post_message(vscode, { command: 'GET_PROVIDERS' })
     post_message(vscode, { command: 'GET_API_CONFIGURATIONS' })
     post_message(vscode, { command: 'GET_WEB_CONFIGURATIONS' })
+    post_message(vscode, { command: 'GET_CLI_CONFIGURATIONS' })
     post_message(vscode, { command: 'GET_EDIT_FILES_SYSTEM_INSTRUCTIONS' })
     post_message(vscode, { command: 'GET_COMMIT_MESSAGE_INSTRUCTIONS' })
     post_message(vscode, {
@@ -90,6 +98,9 @@ export const use_settings = (vscode: any) => {
         set_defaults(message.defaults)
       } else if (message.command == 'WEB_CONFIGURATIONS') {
         set_web_configurations(message.web_configurations)
+      } else if (message.command == 'CLI_CONFIGURATIONS') {
+        set_cli_configurations(message.cli_configurations)
+        set_agent_defaults(message.defaults || {})
       } else if (message.command == 'EDIT_FILES_SYSTEM_INSTRUCTIONS') {
         set_edit_files_system_instructions(message.instructions)
         set_default_edit_files_system_instructions(message.default_instructions)
@@ -152,6 +163,17 @@ export const use_settings = (vscode: any) => {
     })
   }
 
+  const handle_add_cli_configuration = (params?: {
+    insertion_index?: number
+    exact_insertion?: boolean
+  }) => {
+    post_message(vscode, {
+      command: 'CREATE_CLI_CONFIGURATION',
+      insertion_index: params?.insertion_index,
+      exact_insertion: params?.exact_insertion
+    })
+  }
+
   const handle_set_default_api_configuration = (
     api_feature: ApiFeature,
     api_configuration_id: string | null
@@ -199,6 +221,14 @@ export const use_settings = (vscode: any) => {
     })
   }
 
+  const handle_reorder_cli_configurations = (reordered: CliConfiguration[]) => {
+    set_cli_configurations(reordered)
+    post_message(vscode, {
+      command: 'REORDER_CLI_CONFIGURATIONS',
+      cli_configurations: reordered
+    })
+  }
+
   const handle_reorder_web_configurations = (reordered: WebConfiguration[]) => {
     post_message(vscode, {
       command: 'REORDER_WEB_CONFIGURATIONS',
@@ -214,6 +244,13 @@ export const use_settings = (vscode: any) => {
       command: 'CREATE_WEB_CONFIGURATION',
       insertion_index: params?.insertion_index,
       exact_insertion: params?.exact_insertion
+    })
+  }
+
+  const handle_delete_cli_configuration = (name: string) => {
+    post_message(vscode, {
+      command: 'DELETE_CLI_CONFIGURATION',
+      name
     })
   }
 
@@ -302,12 +339,6 @@ export const use_settings = (vscode: any) => {
     })
   }
 
-  const handle_open_external_url = (url: string) => {
-    post_message(vscode, {
-      command: 'OPEN_EXTERNAL_URL',
-      url
-    })
-  }
 
   const handle_add_template = (
     key: string,
@@ -359,6 +390,15 @@ export const use_settings = (vscode: any) => {
     })
   }
 
+  const handle_toggle_pinned_cli_configuration = (config: CliConfiguration) => {
+    post_message(vscode, {
+      command: 'UPDATE_CLI_CONFIGURATION',
+      updating_cli_configuration: config,
+      updated_cli_configuration: { ...config, is_pinned: !config.is_pinned },
+      origin: 'save'
+    })
+  }
+
   const handle_toggle_pinned_web_configuration = (config: WebConfiguration) => {
     post_message(vscode, {
       command: 'UPDATE_WEB_CONFIGURATION',
@@ -375,6 +415,9 @@ export const use_settings = (vscode: any) => {
     set_api_configurations,
     web_configurations,
     set_web_configurations,
+    cli_configurations,
+    set_cli_configurations,
+    agent_defaults,
     defaults,
     commit_message_instructions,
     default_commit_message_instructions,
@@ -395,9 +438,13 @@ export const use_settings = (vscode: any) => {
     handle_reorder_api_configurations,
     handle_add_api_configuration,
     handle_delete_api_configuration,
+    handle_reorder_cli_configurations,
+    handle_add_cli_configuration,
+    handle_delete_cli_configuration,
     handle_reorder_web_configurations,
     handle_add_web_configuration,
     handle_delete_web_configuration,
+    handle_toggle_pinned_cli_configuration,
     handle_toggle_pinned_api_configuration,
     handle_toggle_pinned_web_configuration,
     handle_commit_instructions_change,
@@ -412,7 +459,6 @@ export const use_settings = (vscode: any) => {
     handle_ai_studio_user_id_change,
     handle_send_with_shift_enter_change,
     handle_open_keybindings,
-    handle_open_external_url,
     templates,
     handle_update_templates,
     handle_add_template,

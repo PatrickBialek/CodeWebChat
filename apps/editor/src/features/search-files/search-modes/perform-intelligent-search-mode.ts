@@ -1,5 +1,5 @@
-import * as vscode from 'vscode'
 import * as path from 'path'
+import * as vscode from 'vscode'
 import { WorkspaceProvider } from '@/context/providers/workspace/workspace-provider'
 import { t } from '@/i18n'
 import {
@@ -38,6 +38,7 @@ export const perform_intelligent_search_mode = async (params: {
   is_search_in_selected?: boolean
   is_sub_search?: boolean
   folder_path?: string
+  get_file_content?: (file_path: string) => Promise<string | undefined>
 }): Promise<
   | { selected_paths: string[]; matched_paths: string[]; title: string }
   | undefined
@@ -85,33 +86,39 @@ export const perform_intelligent_search_mode = async (params: {
 
     const analysis = await analyze_files({
       workspace_provider: params.workspace_provider,
-      files: params.files
+      files: params.files,
+      get_file_content: params.get_file_content
     })
 
     let go_back_to_term = false
 
     while (true) {
-      const should_shrink =
-        params.extension_context.workspaceState.get<boolean>(
+      let shrink_result: boolean | 'back' | 'cancel' = false
+      const skip_shrink = analysis.full_tokens == analysis.shrink_tokens
+
+      if (!skip_shrink) {
+        const should_shrink =
+          params.extension_context.workspaceState.get<boolean>(
+            LAST_INTELLIGENT_FILE_SEARCH_SHRINK_STATE_KEY,
+            false
+          )
+        shrink_result = await prompt_for_shrink_mode({
+          should_shrink,
+          full_tokens: analysis.full_tokens,
+          shrink_tokens: analysis.shrink_tokens
+        })
+
+        if (shrink_result == 'back') {
+          go_back_to_term = true
+          break
+        }
+        if (shrink_result == 'cancel') return undefined
+
+        await params.extension_context.workspaceState.update(
           LAST_INTELLIGENT_FILE_SEARCH_SHRINK_STATE_KEY,
-          false
+          shrink_result
         )
-      const shrink_result = await prompt_for_shrink_mode({
-        should_shrink,
-        full_tokens: analysis.full_tokens,
-        shrink_tokens: analysis.shrink_tokens
-      })
-
-      if (shrink_result == 'back') {
-        go_back_to_term = true
-        break
       }
-      if (shrink_result == 'cancel') return undefined
-
-      await params.extension_context.workspaceState.update(
-        LAST_INTELLIGENT_FILE_SEARCH_SHRINK_STATE_KEY,
-        shrink_result
-      )
 
       let go_back_to_shrink = false
 
@@ -205,7 +212,11 @@ export const perform_intelligent_search_mode = async (params: {
         )
 
         if (action == 'back') {
-          go_back_to_shrink = true
+          if (skip_shrink) {
+            go_back_to_term = true
+          } else {
+            go_back_to_shrink = true
+          }
           break
         }
         if (!action) return undefined

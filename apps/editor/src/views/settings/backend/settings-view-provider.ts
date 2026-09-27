@@ -31,7 +31,6 @@ import {
   handle_open_ignore_patterns_settings,
   handle_open_allow_patterns_settings,
   handle_open_keybindings,
-  handle_open_external_url,
   handle_delete_web_configuration,
   handle_reorder_web_configurations,
   handle_create_web_configuration,
@@ -49,11 +48,19 @@ import {
   handle_get_templates,
   handle_update_templates,
   handle_create_template,
-  handle_delete_template
+  handle_delete_template,
+  handle_create_cli_configuration,
+  handle_delete_cli_configuration,
+  handle_update_cli_configuration,
+  handle_reorder_cli_configurations,
+  handle_pick_agent
 } from './message-handlers'
 import { config_web_configuration_to_ui_format } from '@/utils/web-configuration-format-converters'
 import { webview_html } from '@/views/shared/utils/webview-html'
 import { CHATBOTS } from '@shared/constants/chatbots'
+import { config_cli_configuration_to_ui_format } from '@/utils/cli-configuration-format-converters'
+import { AGENTS } from '@/constants/agents'
+import { t } from '@/i18n'
 
 export class SettingsViewProvider {
   private _webview_panel: vscode.WebviewPanel | undefined
@@ -94,6 +101,25 @@ export class SettingsViewProvider {
           }
           return config_web_configuration_to_ui_format({ ...config, model })
         })
+    })
+  }
+
+  private _send_cli_configurations() {
+    const config = vscode.workspace.getConfiguration('codeWebChat')
+    const cli_configurations_config = config.get<any[]>('agents', []) || []
+
+    this.postMessage({
+      command: 'CLI_CONFIGURATIONS',
+      cli_configurations: cli_configurations_config
+        .filter(
+          (c: any) => c.agent && AGENTS[c.agent as keyof typeof AGENTS]
+        )
+        .map((config: any) => {
+          return config_cli_configuration_to_ui_format(config)
+        }),
+      defaults: {
+        'agentic-search': cli_configurations_config.find((c: any) => c.isDefaultForAgenticSearch)?.name || null
+      }
     })
   }
 
@@ -236,8 +262,18 @@ export class SettingsViewProvider {
           await handle_open_allow_patterns_settings()
         } else if (message.command == 'OPEN_KEYBINDINGS') {
           await handle_open_keybindings(message)
-        } else if (message.command == 'OPEN_EXTERNAL_URL') {
-          await handle_open_external_url(message)
+        } else if (message.command == 'GET_CLI_CONFIGURATIONS') {
+          this._send_cli_configurations()
+        } else if (message.command == 'CREATE_CLI_CONFIGURATION') {
+          await handle_create_cli_configuration(this, message)
+        } else if (message.command == 'DELETE_CLI_CONFIGURATION') {
+          await handle_delete_cli_configuration(message.name)
+        } else if (message.command == 'UPDATE_CLI_CONFIGURATION') {
+          await handle_update_cli_configuration(this, message)
+        } else if (message.command == 'REORDER_CLI_CONFIGURATIONS') {
+          await handle_reorder_cli_configurations(message)
+        } else if (message.command == 'PICK_AGENT') {
+          await handle_pick_agent(this, message)
         } else if (message.command == 'GET_WEB_CONFIGURATIONS') {
           this._send_web_configurations()
         } else if (message.command == 'REORDER_WEB_CONFIGURATIONS') {
@@ -268,6 +304,78 @@ export class SettingsViewProvider {
           await handle_pick_api_model(this, message)
         } else if (message.command == 'PICK_API_REASONING_EFFORT') {
           await handle_pick_api_reasoning_effort(this, message)
+        } else if (message.command == 'SET_DEFAULT_CLI_CONFIGURATION') {
+          const config = vscode.workspace.getConfiguration('codeWebChat')
+          const agent_configs = config.get<any[]>('agents', []) || []
+          const updated = agent_configs.map((c) => {
+            const new_c = { ...c }
+            if (message.cli_feature === 'agentic-search') {
+              if (c.name === message.cli_configuration_name) {
+                new_c.isDefaultForAgenticSearch = true
+              } else {
+                delete new_c.isDefaultForAgenticSearch
+              }
+            }
+            return new_c
+          })
+          await config.update('agents', updated, vscode.ConfigurationTarget.Global)
+        } else if (message.command == 'SELECT_DEFAULT_CLI_CONFIGURATION') {
+          const config = vscode.workspace.getConfiguration('codeWebChat')
+          const agent_configs = config.get<any[]>('agents', []) || []
+          if (agent_configs.length === 0) return
+
+          const items = agent_configs.map((c) => {
+            const is_unnamed = /^\(\d+\)$/.test(c.name.trim())
+            const display_name = is_unnamed ? c.agent : c.name.replace(/ \(\d+\)$/, '')
+
+            return {
+              label: display_name,
+              description: c.agent === display_name ? undefined : c.agent,
+              cli_configuration_name: c.name
+            }
+          })
+
+          const quick_pick = vscode.window.createQuickPick<
+            vscode.QuickPickItem & { cli_configuration_name: string }
+          >()
+          quick_pick.items = items
+          quick_pick.title = t('common.title.agents')
+          quick_pick.placeholder = t('common.placeholder.select-agent')
+
+          const close_button: vscode.QuickInputButton = {
+            iconPath: new vscode.ThemeIcon('close'),
+            tooltip: t('common.close')
+          }
+          quick_pick.buttons = [close_button]
+
+          quick_pick.onDidTriggerButton((button) => {
+            if (button === close_button) {
+              quick_pick.hide()
+            }
+          })
+
+          quick_pick.onDidAccept(async () => {
+            const selected = quick_pick.selectedItems[0]
+            quick_pick.hide()
+
+            if (selected) {
+              const updated = agent_configs.map((c) => {
+                const new_c = { ...c }
+                if (message.cli_feature == 'agentic-search') {
+                  if (c.name == selected.cli_configuration_name) {
+                    new_c.isDefaultForAgenticSearch = true
+                  } else {
+                    delete new_c.isDefaultForAgenticSearch
+                  }
+                }
+                return new_c
+              })
+              await config.update('agents', updated, vscode.ConfigurationTarget.Global)
+            }
+          })
+
+          quick_pick.onDidHide(() => quick_pick.dispose())
+          quick_pick.show()
         } else if (message.command == 'GET_IS_MODERN_UI') {
           this._send_is_modern_ui()
         }
@@ -291,6 +399,7 @@ export class SettingsViewProvider {
           void handle_get_send_with_shift_enter(this)
           void handle_get_templates(this)
           this._send_web_configurations()
+          this._send_cli_configurations()
         }
         if (e.affectsConfiguration('workbench.experimental.modernUI')) {
           this._send_is_modern_ui()

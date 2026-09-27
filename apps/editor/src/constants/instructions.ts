@@ -68,3 +68,17 @@ These files contain the core greeting logic and module exports.`
 
 export const voice_input_instructions =
   'Respond with a transcription of the following audio recording or text "INAUDIBLE", and nothing else.'
+
+export const cli_edit_ask_requirements = {
+  preloaded_files: 'All project files are shown in [files](#files) section.',
+  referenced_files_with_some_preloaded:
+    'Begin by looking at [files](#files) section for unread files (### Unread file: `[PROJECT-RELATIVE PATH]`) and read them one-by-one.',
+  referenced_files_only:
+    'Begin by looking at [files](#files) section for referenced files (### File: `[PROJECT-RELATIVE PATH]`) and read them one-by-one.',
+  read_images:
+    'If [task](#task) section includes *.png image paths, read them.',
+  restrict_tool_calls:
+    'Any further tool calling (including commands like grep, ls, git, etc.) is FORBIDDEN.',
+  restrict_tool_calls_with_exceptions:
+    'Any further tool calling (including commands like grep, ls, git, etc.) is FORBIDDEN, with exceptions: explicit file CREATIONS, DELETIONS or UPDATES to complete the [task](#task).'
+}

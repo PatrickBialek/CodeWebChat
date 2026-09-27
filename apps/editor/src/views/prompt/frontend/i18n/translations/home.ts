@@ -107,24 +107,6 @@ export const home = {
     hu: 'Szerzői jog © {year} {link}',
     bg: 'Авторско право © {year} {link}'
   },
-  'home.shrink-source-code': {
-    en: 'Strip function bodies',
-    pl: 'Usuń ciała funkcji',
-    'zh-cn': '剥离函数体',
-    ja: '関数本体を取り除く',
-    'zh-tw': '剝離函數主體',
-    de: 'Funktionskörper entfernen',
-    es: 'Eliminar cuerpos de funciones',
-    fr: 'Supprimer les corps de fonction',
-    'pt-br': 'Remover corpos de funções',
-    ru: 'Удалить тела функций',
-    ko: '함수 본문 제거',
-    it: 'Rimuovi corpi di funzioni',
-    tr: 'İşlev gövdelerini kaldır',
-    cs: 'Odstranit těla funkcí',
-    hu: 'Függvénytestek eltávolítása',
-    bg: 'Премахване на телата на функциите'
-  },
   'home.target.web.description': {
     en: 'Copy prompts',
     pl: 'Kopiuj prompty',
@@ -178,5 +160,23 @@ export const home = {
     cs: 'Odeslat požadavky',
     hu: 'Kérések küldése',
     bg: 'Изпращане на заявки'
+  },
+  'home.target.cli.description': {
+    en: 'Invoke agents',
+    pl: 'Wywołaj agentów',
+    'zh-cn': '调用代理',
+    ja: 'エージェントを呼び出す',
+    'zh-tw': '調用代理',
+    de: 'Agenten aufrufen',
+    es: 'Invocar agentes',
+    fr: 'Invoquer des agents',
+    'pt-br': 'Invocar agentes',
+    ru: 'Вызвать агентов',
+    ko: '에이전트 호출',
+    it: 'Invoca agenti',
+    tr: 'Aracıları çağır',
+    cs: 'Vyvolat agenty',
+    hu: 'Ügynökök meghívása',
+    bg: 'Извикване на агенти'
   }
 } as const
